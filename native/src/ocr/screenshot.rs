@@ -1,7 +1,7 @@
 use crate::ffi::error::OcrError;
 use crate::ffi::types::DesktopEnv;
-use std::process::Command;
 use std::fs;
+use std::process::Command;
 
 pub struct DesktopScreenshot;
 
@@ -18,7 +18,7 @@ impl DesktopScreenshot {
     fn capture_kde() -> Result<Vec<u8>, OcrError> {
         // 使用 spectacle 命令行截图（需要用户交互选择区域）
         if Self::has_spectacle() {
-            let temp_file = std::env::temp_dir().join("xym_ft_screenshot.png");
+            let temp_file = std::env::temp_dir().join("Waylex_screenshot.png");
 
             let output = Command::new("spectacle")
                 .args(["-r", "-b", "-n", "-o"])
@@ -30,8 +30,7 @@ impl DesktopScreenshot {
                 return Err(OcrError::ScreenshotFailed);
             }
 
-            let data = fs::read(&temp_file)
-                .map_err(|e| OcrError::IoError(e))?;
+            let data = fs::read(&temp_file).map_err(|e| OcrError::IoError(e))?;
 
             fs::remove_file(&temp_file).ok();
 
@@ -55,7 +54,7 @@ impl DesktopScreenshot {
     }
 
     fn capture_gnome() -> Result<Vec<u8>, OcrError> {
-        let temp_file = std::env::temp_dir().join("xym_ft_screenshot.png");
+        let temp_file = std::env::temp_dir().join("Waylex_screenshot.png");
 
         let output = Command::new("gnome-screenshot")
             .args(["-a", "-f"])
@@ -67,8 +66,7 @@ impl DesktopScreenshot {
             return Err(OcrError::ScreenshotFailed);
         }
 
-        let data = fs::read(&temp_file)
-            .map_err(|e| OcrError::IoError(e))?;
+        let data = fs::read(&temp_file).map_err(|e| OcrError::IoError(e))?;
 
         fs::remove_file(&temp_file).ok();
         Ok(data)

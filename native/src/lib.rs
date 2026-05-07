@@ -29,6 +29,9 @@ static RUNTIME: once_cell::sync::Lazy<tokio::runtime::Runtime> =
 /// 在 Flutter 应用启动时调用
 pub fn init_services() {
     INIT.call_once(|| {
+        let _ = tracing_subscriber::fmt()
+            .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+            .try_init();
         tracing::info!("Initializing flutter-translate services...");
 
         RUNTIME.spawn(async {

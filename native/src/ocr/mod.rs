@@ -1,13 +1,13 @@
-pub mod tesseract;
-pub mod screenshot;
-pub mod kde;
 pub mod hyprland;
+pub mod kde;
+pub mod screenshot;
+pub mod tesseract;
 
+use crate::config::ConfigManager;
 use crate::ffi::error::OcrError;
 use crate::ffi::types::OcrResult;
-use crate::config::ConfigManager;
-use image::imageops::{self, FilterType};
 use image::DynamicImage;
+use image::imageops::{self, FilterType};
 use std::io::Write;
 use std::process::Command;
 use std::time::Instant;
@@ -31,25 +31,40 @@ impl OcrService {
 
         let data = image_data.to_vec();
         let lang = lang.to_string();
-        tokio::task::spawn_blocking(move || Self::recognize_blocking(&data, &lang)).await
-            .map_err(|e| OcrError::CommandError(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?
+        tokio::task::spawn_blocking(move || Self::recognize_blocking(&data, &lang))
+            .await
+            .map_err(|e| {
+                OcrError::CommandError(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    e.to_string(),
+                ))
+            })?
     }
 
     fn recognize_blocking(image_data: &[u8], lang: &str) -> Result<OcrResult, OcrError> {
         let start = Instant::now();
 
-        let img = image::load_from_memory(image_data)
-            .map_err(|e| OcrError::CommandError(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+        let img = image::load_from_memory(image_data).map_err(|e| {
+            OcrError::CommandError(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                e.to_string(),
+            ))
+        })?;
 
         let processed = Self::preprocess(img);
 
         let temp_dir = std::env::temp_dir();
-        let temp_path = temp_dir.join("xym_ft_ocr.png");
+        let temp_path = temp_dir.join("Waylex_ocr.png");
         {
-            let mut file = std::fs::File::create(&temp_path)
-                .map_err(|e| OcrError::IoError(e))?;
-            processed.write_to(&mut file, image::ImageFormat::Png)
-                .map_err(|e| OcrError::IoError(std::io::Error::new(std::io::ErrorKind::Other, e.to_string())))?;
+            let mut file = std::fs::File::create(&temp_path).map_err(|e| OcrError::IoError(e))?;
+            processed
+                .write_to(&mut file, image::ImageFormat::Png)
+                .map_err(|e| {
+                    OcrError::IoError(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        e.to_string(),
+                    ))
+                })?;
             file.write_all(b"")?;
         }
 
@@ -69,9 +84,12 @@ impl OcrService {
         let output = Command::new("tesseract")
             .arg(temp_path.to_str().unwrap())
             .arg("stdout")
-            .arg("-l").arg(tesseract_lang)
-            .arg("--psm").arg(psm)
-            .arg("-c").arg("tessedit_write_images=false")
+            .arg("-l")
+            .arg(tesseract_lang)
+            .arg("--psm")
+            .arg(psm)
+            .arg("-c")
+            .arg("tessedit_write_images=false")
             .output()
             .map_err(|e| OcrError::CommandError(e))?;
 

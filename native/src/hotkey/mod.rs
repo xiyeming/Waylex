@@ -38,26 +38,28 @@ impl HotkeyService {
 
         // Hyprland: try evdev first (reliable with input group), IPC as fallback
         if desktop_env == crate::ffi::types::DesktopEnv::Hyprland {
+            tracing::info!("[hotkey] Hyprland detected, trying evdev first...");
             let mut evdev_service = evdev::EvdevHotkeyService::with_running(self.running.clone())?;
             if evdev_service.register_all(shortcuts.clone()).await.is_ok() {
                 let event_tx = tx.clone();
                 tokio::task::spawn_blocking(move || {
                     if let Err(e) = evdev_service.listen_blocking(event_tx) {
-                        tracing::warn!("Evdev listener failed: {}. Ensure input group: sudo usermod -aG input $USER", e);
+                        tracing::warn!("[hotkey] Evdev listener failed: {}. Ensure input group: sudo usermod -aG input $USER", e);
                     }
                 });
                 self.registered = shortcuts;
-                tracing::info!("Hyprland: evdev hotkeys registered");
+                tracing::info!("[hotkey] Hyprland: evdev hotkeys registered successfully");
                 return Ok(());
             }
+            tracing::warn!("[hotkey] evdev failed, falling back to Hyprland IPC socket2");
             // Fallback to Hyprland IPC
             let mut hl_service = hyprland::HyprlandHotkeyService::new()?;
             if hl_service.register_all(shortcuts.clone(), tx.clone()).await.is_ok() {
                 self.registered = shortcuts;
-                tracing::info!("Hyprland IPC hotkeys registered");
+                tracing::info!("[hotkey] Hyprland IPC hotkeys registered successfully");
                 return Ok(());
             }
-            tracing::info!("Hyprland hotkeys failed");
+            tracing::error!("[hotkey] Hyprland hotkeys failed (both evdev and IPC)");
             return Err(HotkeyError::NoKeyboardDevices);
         }
 
@@ -103,9 +105,15 @@ impl HotkeyService {
     pub fn poll_event(&mut self, _timeout_ms: u64) -> Option<String> {
         let rx = self.event_rx.as_mut()?;
         match rx.try_recv() {
-            Ok(action) => Some(action),
+            Ok(action) => {
+                tracing::info!("[hotkey] poll_event received: {}", action);
+                Some(action)
+            }
             Err(broadcast::error::TryRecvError::Empty) => None,
-            Err(_) => None,
+            Err(e) => {
+                tracing::warn!("[hotkey] poll_event receiver error: {:?}", e);
+                None
+            }
         }
     }
 }

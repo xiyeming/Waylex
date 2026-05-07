@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import '../../data/datasources/ffi_datasource.dart';
 import '../../data/models/shortcut_binding.dart';
 
@@ -21,6 +22,7 @@ class HotkeyService {
   Future<void> registerAll() async {
     try {
       final bindings = await _ffi.getShortcuts();
+      debugPrint('[hotkey] registerAll: found ${bindings.length} bindings');
       if (bindings.isEmpty) {
         // Insert default shortcuts if none exist
         final defaults = [
@@ -31,38 +33,50 @@ class HotkeyService {
         for (final b in defaults) {
           await _ffi.updateShortcut(b);
         }
+        debugPrint('[hotkey] registering ${defaults.length} default shortcuts');
         await _ffi.registerHotkeys(defaults);
       } else {
+        debugPrint('[hotkey] registering ${bindings.length} saved shortcuts');
         await _ffi.registerHotkeys(bindings);
       }
 
       _startPolling();
     } catch (e) {
-      // Hotkey registration failed — non-fatal
+      debugPrint('[hotkey] registerAll failed: $e');
     }
   }
 
   Future<void> updateAndReregister(List<ShortcutBinding> bindings) async {
     try {
+      debugPrint('[hotkey] updateAndReregister: ${bindings.length} bindings');
       _stopPolling();
       await _ffi.unregisterHotkeys();
+      debugPrint('[hotkey] unregisterHotkeys done');
       for (final b in bindings) {
         await _ffi.updateShortcut(b);
       }
-      await _ffi.registerHotkeys(bindings.where((b) => b.enabled).toList());
+      final enabled = bindings.where((b) => b.enabled).toList();
+      debugPrint('[hotkey] registering ${enabled.length} enabled shortcuts');
+      await _ffi.registerHotkeys(enabled);
       _startPolling();
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[hotkey] updateAndReregister failed: $e');
+    }
   }
 
   void _startPolling() {
     _pollTimer?.cancel();
+    debugPrint('[hotkey] polling started (200ms interval)');
     _pollTimer = Timer.periodic(const Duration(milliseconds: 200), (_) async {
       try {
         final event = await _ffi.pollHotkeyEvent();
         if (event != null && event.isNotEmpty) {
+          debugPrint('[hotkey] polled event: $event');
           _hotkeyController.add(event);
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[hotkey] poll error: $e');
+      }
     });
   }
 

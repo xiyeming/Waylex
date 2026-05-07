@@ -88,28 +88,42 @@ impl HyprlandHotkeyService {
         let actions = Arc::new(action_map);
         tokio::task::spawn_blocking(move || {
             let mut stream = match UnixStream::connect(&socket2) {
-                Ok(s) => s,
-                Err(_) => { tracing::error!("Cannot connect to hyprland socket2"); return; }
+                Ok(s) => {
+                    tracing::info!("[hyprland] Connected to socket2: {}", socket2);
+                    s
+                }
+                Err(e) => {
+                    tracing::error!("[hyprland] Cannot connect to socket2 ({}): {}", socket2, e);
+                    return;
+                }
             };
             let mut buf = [0u8; 4096];
             while running.load(Ordering::SeqCst) {
                 match stream.read(&mut buf) {
                     Ok(n) if n > 0 => {
                         let msg = String::from_utf8_lossy(&buf[..n]);
-                        // Hyprland socket2 events: "activekeyv2>>keycode,keyboard"
-                        // We map recognized key combinations
+                        tracing::debug!("[hyprland] socket2 raw: {}", msg.trim());
                         if let Some(pos) = msg.find("activekeyv2>>") {
                             let event_str: String = msg[pos + 13..].trim().to_string();
+                            tracing::info!("[hyprland] activekeyv2 event: {}", event_str);
                             for (bind, action) in actions.iter() {
                                 if event_str.contains(bind.as_str()) {
+                                    tracing::info!("[hyprland] Hotkey matched: {} -> {}", bind, action);
                                     let _ = event_tx.send(action.clone());
                                     break;
                                 }
                             }
                         }
                     }
+                    Ok(0) => {
+                        tracing::warn!("[hyprland] socket2 returned 0 bytes, peer closed");
+                        std::thread::sleep(std::time::Duration::from_millis(200));
+                    }
                     Ok(_) => { std::thread::sleep(std::time::Duration::from_millis(50)); }
-                    Err(_) => { std::thread::sleep(std::time::Duration::from_millis(200)); }
+                    Err(e) => {
+                        tracing::warn!("[hyprland] socket2 read error: {}", e);
+                        std::thread::sleep(std::time::Duration::from_millis(200));
+                    }
                 }
             }
         });

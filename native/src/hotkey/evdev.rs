@@ -106,8 +106,34 @@ impl EvdevHotkeyService {
 
         for path in device_paths {
             let mut device = match evdev::Device::open(&path) {
-                Ok(d) if d.supported_keys().is_some() => d,
-                _ => continue,
+                Ok(d) => {
+                    let name = d.name().unwrap_or("unknown").to_string();
+                    let name_lower = name.to_lowercase();
+                    // 排除名字明显是鼠标/触摸板的设备
+                    if name_lower.contains("mouse") || name_lower.contains("touchpad") || name_lower.contains("trackpoint") {
+                        tracing::debug!("[evdev] Skipping {} (name indicates non-keyboard)", name);
+                        continue;
+                    }
+                    // 只保留真正的键盘设备：必须有 KEY_A 支持
+                    let keys = match d.supported_keys() {
+                        Some(k) => k,
+                        None => {
+                            tracing::debug!("[evdev] Skipping {} (no supported_keys)", name);
+                            continue;
+                        }
+                    };
+                    // 键盘必须有字母键支持；鼠标有 BTN_LEFT 但没有 KEY_A
+                    if !keys.contains(evdev::KeyCode::KEY_A) {
+                        tracing::debug!("[evdev] Skipping {} (no KEY_A, probably mouse/touchpad)", name);
+                        continue;
+                    }
+                    tracing::info!("[evdev] Opened keyboard device: {} at {:?}", name, path);
+                    d
+                }
+                Err(e) => {
+                    tracing::warn!("[evdev] Failed to open device {:?}: {}", path, e);
+                    continue;
+                }
             };
             opened += 1;
             let tx = tx.clone();
@@ -117,14 +143,27 @@ impl EvdevHotkeyService {
             let last_trigger = last_trigger.clone();
 
             std::thread::spawn(move || {
+                let mut consecutive_errors = 0u32;
+                let device_name = device.name().unwrap_or("unknown").to_string();
                 while running.load(Ordering::SeqCst) {
                     match device.fetch_events() {
                         Ok(events) => {
+                            consecutive_errors = 0;
                             for ev in events {
-                                let code = ev.code() as u16;
-                                if ev.value() == 1 {
+                                // 只处理键盘按键事件，忽略鼠标移动/滚轮/同步事件
+                                if ev.event_type() != evdev::EventType::KEY {
+                                    continue;
+                                }
+                                let code = ev.code();
+                                if code == 0 {
+                                    // KEY_RESERVED，忽略无效事件
+                                    continue;
+                                }
+                                let value = ev.value();
+                                if value == 1 {
                                     held_keys.lock().unwrap().insert(code);
                                     let keys = held_keys.lock().unwrap();
+                                    tracing::debug!("[evdev] key down: code={} held={:?}", code, *keys);
                                     for (mods, trigger, action) in &shortcuts {
                                         if code == *trigger && mods.iter().all(|m| keys.contains(m)) {
                                             let now = Instant::now();
@@ -133,20 +172,36 @@ impl EvdevHotkeyService {
                                             if now.duration_since(last).as_millis() < 400 { continue; }
                                             lt.insert(action.clone(), now);
                                             drop(lt);
-                                            tracing::info!("Hotkey triggered: {}", action);
+                                            tracing::info!("[evdev] Hotkey triggered: {}", action);
                                             let _ = tx.send(action.clone());
                                         }
                                     }
-                                } else if ev.value() == 0 {
+                                } else if value == 0 {
                                     held_keys.lock().unwrap().remove(&code);
+                                    tracing::debug!("[evdev] key up: code={}", code);
                                 }
                             }
                         }
-                        Err(_) => {
+                        Err(e) => {
+                            consecutive_errors += 1;
+                            if consecutive_errors == 1 || consecutive_errors % 50 == 0 {
+                                tracing::warn!(
+                                    "[evdev] fetch_events error on {} ({} consecutive): {}",
+                                    device_name, consecutive_errors, e
+                                );
+                            }
+                            if consecutive_errors > 100 {
+                                tracing::error!(
+                                    "[evdev] Device {} appears disconnected, stopping listener",
+                                    device_name
+                                );
+                                break;
+                            }
                             std::thread::sleep(std::time::Duration::from_millis(100));
                         }
                     }
                 }
+                tracing::info!("[evdev] Listener thread exited for device: {}", device_name);
             });
         }
 

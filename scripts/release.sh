@@ -5,7 +5,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FLUTTER_DIR="$PROJECT_DIR/flutter"
 NATIVE_DIR="$PROJECT_DIR/native"
 BUILD_DIR="$PROJECT_DIR/build"
-APP_NAME="xym_ft"
+APP_NAME="Waylex"
 APP_ID="com.xym.ft"
 VERSION=$(grep '^version' "$NATIVE_DIR/Cargo.toml" | head -1 | sed 's/.*"\(.*\)"/\1/')
 OUTPUT="$BUILD_DIR/$APP_NAME-v$VERSION-x86_64.AppImage"
@@ -50,7 +50,7 @@ cat > "$BUILD_DIR/AppDir/AppRun" << 'EOF'
 #!/bin/bash
 HERE="$(dirname "$(readlink -f "$0")")"
 export LD_LIBRARY_PATH="$HERE/usr/bin/lib:$LD_LIBRARY_PATH"
-exec "$HERE/usr/bin/xym_ft" "$@"
+exec "$HERE/usr/bin/Waylex" "$@"
 EOF
 chmod +x "$BUILD_DIR/AppDir/AppRun"
 

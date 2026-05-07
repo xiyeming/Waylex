@@ -1,9 +1,9 @@
 use crate::ffi::error::OcrError;
-use std::process::Command;
 use std::fs;
+use std::process::Command;
 
 pub async fn capture_screenshot() -> Result<Vec<u8>, OcrError> {
-    let temp_file = std::env::temp_dir().join("xym_ft_kde_screenshot.png");
+    let temp_file = std::env::temp_dir().join("Waylex_kde_screenshot.png");
 
     // Use spectacle for KDE screenshot
     if has_spectacle() {

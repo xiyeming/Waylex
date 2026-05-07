@@ -92,8 +92,22 @@ class _ProviderSettingsTabState extends ConsumerState<_ProviderSettingsTab> {
   }
 
   Future<void> _toggleActive(ProviderConfig p) async {
-    final saved = _providers.where((s) => s.id == p.id).firstOrNull;
-    final hasKey = saved?.apiKey != null && saved!.apiKey!.isNotEmpty;
+    var saved = _providers.where((s) => s.id == p.id).firstOrNull;
+    var hasKey = saved?.apiKey != null && saved!.apiKey!.isNotEmpty;
+
+    // 缓存中没有 apiKey 时，从数据库刷新一次（编辑页返回后缓存可能过时）
+    if (!hasKey) {
+      final ffi = FfiDatasource();
+      final fresh = await ffi.getProviders();
+      saved = fresh.where((s) => s.id == p.id).firstOrNull;
+      hasKey = saved?.apiKey != null && saved!.apiKey!.isNotEmpty;
+      if (hasKey && mounted) {
+        setState(() {
+          _providers = fresh;
+        });
+      }
+    }
+
     if (!(saved?.isActive ?? false) && !hasKey) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

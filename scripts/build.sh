@@ -2,7 +2,7 @@
 
 set -e
 
-echo "=== xym_ft Build Script ==="
+echo "=== Waylex Build Script ==="
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 FLUTTER_DIR="$PROJECT_DIR/flutter"
@@ -42,7 +42,7 @@ cat > "$FLUTTER_DIR/build/linux/x64/release/bundle/run.sh" << 'WRAPPER'
 SELF="$(readlink -f "$0")"
 BUNDLE_DIR="$(dirname "$SELF")"
 export LD_LIBRARY_PATH="$BUNDLE_DIR/lib:$LD_LIBRARY_PATH"
-exec "$BUNDLE_DIR/xym_ft" "$@"
+exec "$BUNDLE_DIR/Waylex" "$@"
 WRAPPER
 chmod +x "$FLUTTER_DIR/build/linux/x64/release/bundle/run.sh"
 

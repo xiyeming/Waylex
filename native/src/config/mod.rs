@@ -82,8 +82,13 @@ impl ConfigManager {
     pub async fn save_provider(config: ProviderConfig) -> Result<(), ConfigError> {
         let pool = storage::get_pool().await;
 
-        if let Some(api_key) = &config.api_key {
-            let _ = secret::set_api_key(&config.id, api_key).await;
+        match &config.api_key {
+            Some(api_key) => {
+                let _ = secret::set_api_key(&config.id, api_key).await;
+            }
+            None => {
+                let _ = secret::delete_api_key(&config.id).await;
+            }
         }
 
         sqlx::query(
@@ -100,7 +105,7 @@ impl ConfigManager {
         .bind(&config.api_url)
         .bind(&config.model)
         .bind(&config.auth_type)
-        .bind(if config.is_active { 1 } else { 0 })
+        .bind(if config.is_active && config.api_key.is_some() { 1 } else { 0 })
         .bind(config.sort_order)
         .bind(&config.system_prompt)
         .execute(&pool).await.map_err(|e| ConfigError::DbError(e))?;

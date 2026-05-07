@@ -1,8 +1,8 @@
+use crate::ffi::error::ConfigError;
 use sqlx::{Sqlite, SqlitePool, migrate::MigrateDatabase};
 use std::path::PathBuf;
-use crate::ffi::error::ConfigError;
 
-const DB_NAME: &str = "xym_ft.db";
+const DB_NAME: &str = "Waylex.db";
 
 pub struct Database {
     pool: SqlitePool,
@@ -14,11 +14,13 @@ impl Database {
         let db_url = format!("sqlite:{}", db_path.display());
 
         if !Sqlite::database_exists(&db_url).await.unwrap_or(false) {
-            Sqlite::create_database(&db_url).await
+            Sqlite::create_database(&db_url)
+                .await
                 .map_err(|e| ConfigError::DbError(e))?;
         }
 
-        let pool = SqlitePool::connect(&db_url).await
+        let pool = SqlitePool::connect(&db_url)
+            .await
             .map_err(|e| ConfigError::DbError(e))?;
 
         Self::run_migrations(&pool).await?;
@@ -54,8 +56,11 @@ impl Database {
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            "#
-        ).execute(pool).await.map_err(|e| ConfigError::DbError(e))?;
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ConfigError::DbError(e))?;
 
         sqlx::query(
             r#"
@@ -68,8 +73,11 @@ impl Database {
                 is_default INTEGER NOT NULL DEFAULT 0,
                 FOREIGN KEY (provider_id) REFERENCES providers(id) ON DELETE CASCADE
             )
-            "#
-        ).execute(pool).await.map_err(|e| ConfigError::DbError(e))?;
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ConfigError::DbError(e))?;
 
         sqlx::query(
             r#"
@@ -79,14 +87,20 @@ impl Database {
                 last_compare_providers TEXT NOT NULL DEFAULT '[]',
                 last_used TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            "#
-        ).execute(pool).await.map_err(|e| ConfigError::DbError(e))?;
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ConfigError::DbError(e))?;
 
         sqlx::query(
             r#"
             INSERT OR IGNORE INTO active_sessions (id) VALUES (1)
-            "#
-        ).execute(pool).await.map_err(|e| ConfigError::DbError(e))?;
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ConfigError::DbError(e))?;
 
         sqlx::query(
             r#"
@@ -96,8 +110,11 @@ impl Database {
                 key_combination TEXT NOT NULL,
                 enabled INTEGER NOT NULL DEFAULT 1
             )
-            "#
-        ).execute(pool).await.map_err(|e| ConfigError::DbError(e))?;
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ConfigError::DbError(e))?;
 
         sqlx::query(
             r#"
@@ -107,8 +124,11 @@ impl Database {
                 usage_count INTEGER NOT NULL DEFAULT 0,
                 is_favorite INTEGER NOT NULL DEFAULT 0
             )
-            "#
-        ).execute(pool).await.map_err(|e| ConfigError::DbError(e))?;
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ConfigError::DbError(e))?;
 
         sqlx::query(
             r#"
@@ -121,14 +141,20 @@ impl Database {
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            "#
-        ).execute(pool).await.map_err(|e| ConfigError::DbError(e))?;
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ConfigError::DbError(e))?;
 
         sqlx::query(
             r#"
             INSERT OR IGNORE INTO user_config (id) VALUES ('default')
-            "#
-        ).execute(pool).await.map_err(|e| ConfigError::DbError(e))?;
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ConfigError::DbError(e))?;
 
         sqlx::query(
             r#"
@@ -136,12 +162,15 @@ impl Database {
                 provider_id TEXT PRIMARY KEY,
                 api_key TEXT NOT NULL
             )
-            "#
-        ).execute(pool).await.map_err(|e| ConfigError::DbError(e))?;
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ConfigError::DbError(e))?;
 
-        let _ = sqlx::query(
-            "ALTER TABLE providers ADD COLUMN system_prompt TEXT"
-        ).execute(pool).await;
+        let _ = sqlx::query("ALTER TABLE providers ADD COLUMN system_prompt TEXT")
+            .execute(pool)
+            .await;
 
         sqlx::query(
             r#"
@@ -152,8 +181,11 @@ impl Database {
                 is_active INTEGER NOT NULL DEFAULT 0,
                 created_at TEXT NOT NULL DEFAULT (datetime('now'))
             )
-            "#
-        ).execute(pool).await.map_err(|e| ConfigError::DbError(e))?;
+            "#,
+        )
+        .execute(pool)
+        .await
+        .map_err(|e| ConfigError::DbError(e))?;
 
         Ok(())
     }
@@ -165,7 +197,9 @@ static DATABASE: once_cell::sync::Lazy<tokio::sync::Mutex<Option<Database>>> =
 pub async fn get_pool() -> SqlitePool {
     let mut guard = DATABASE.lock().await;
     if guard.is_none() {
-        let db = Database::init().await.expect("Failed to initialize database");
+        let db = Database::init()
+            .await
+            .expect("Failed to initialize database");
         *guard = Some(db);
     }
     guard.as_ref().unwrap().pool().clone()
