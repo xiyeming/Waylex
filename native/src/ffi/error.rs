@@ -43,7 +43,7 @@ pub enum ConfigError {
     DbError(#[from] sqlx::Error),
 
     #[error("Secret service error: {0}")]
-    SecretError(#[from] secret_service::Error),
+    SecretError(String),
 
     #[error("Key not found: {0}")]
     KeyNotFound(String),
@@ -112,7 +112,7 @@ pub enum ClipboardError {
 #[derive(Debug, Error)]
 pub enum TrayError {
     #[error("D-Bus connection failed: {0}")]
-    DbusError(#[from] zbus::Error),
+    DbusError(String),
 
     #[error("Menu registration failed: {0}")]
     MenuError(String),
@@ -133,7 +133,7 @@ pub enum TrayError {
 #[derive(Debug, Error)]
 pub enum HotkeyError {
     #[error("D-Bus error: {0}")]
-    DbusError(#[from] zbus::Error),
+    DbusError(String),
 
     #[error("evdev error: {0}")]
     EvdevError(String),

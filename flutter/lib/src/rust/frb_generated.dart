@@ -164,14 +164,6 @@ abstract class RustLibApi extends BaseApi {
   CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_ConfigErrorPtr;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_HotkeyError;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_HotkeyError;
-
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_HotkeyErrorPtr;
-
-  RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_OcrError;
 
   RustArcDecrementStrongCountFnType
@@ -187,14 +179,6 @@ abstract class RustLibApi extends BaseApi {
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_TranslateErrorPtr;
-
-  RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_TrayError;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_TrayError;
-
-  CrossPlatformFinalizerArg get rust_arc_decrement_strong_count_TrayErrorPtr;
 }
 
 class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
@@ -504,8 +488,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTrayError,
+          decodeErrorData: sse_decode_tray_error,
         ),
         constMeta: kCrateFfiBridgeInitTrayConstMeta,
         argValues: [],
@@ -590,8 +573,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHotkeyError,
+          decodeErrorData: sse_decode_hotkey_error,
         ),
         constMeta: kCrateFfiBridgeRegisterHotkeysConstMeta,
         argValues: [shortcuts],
@@ -713,8 +695,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTrayError,
+          decodeErrorData: sse_decode_tray_error,
         ),
         constMeta: kCrateFfiBridgeShowTrayNotificationConstMeta,
         argValues: [title, body],
@@ -879,8 +860,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
-          decodeErrorData:
-              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHotkeyError,
+          decodeErrorData: sse_decode_hotkey_error,
         ),
         constMeta: kCrateFfiBridgeUnregisterHotkeysConstMeta,
         argValues: [],
@@ -976,14 +956,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerConfigError;
 
   RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_HotkeyError => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHotkeyError;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_HotkeyError => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHotkeyError;
-
-  RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_OcrError => wire
       .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOcrError;
 
@@ -998,14 +970,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RustArcDecrementStrongCountFnType
   get rust_arc_decrement_strong_count_TranslateError => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTranslateError;
-
-  RustArcIncrementStrongCountFnType
-  get rust_arc_increment_strong_count_TrayError => wire
-      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTrayError;
-
-  RustArcDecrementStrongCountFnType
-  get rust_arc_decrement_strong_count_TrayError => wire
-      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTrayError;
 
   @protected
   ClipboardError
@@ -1026,15 +990,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  HotkeyError
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHotkeyError(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return HotkeyErrorImpl.frbInternalDcoDecode(raw as List<dynamic>);
-  }
-
-  @protected
   OcrError
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOcrError(
     dynamic raw,
@@ -1050,15 +1005,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return TranslateErrorImpl.frbInternalDcoDecode(raw as List<dynamic>);
-  }
-
-  @protected
-  TrayError
-  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTrayError(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return TrayErrorImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -1086,15 +1032,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  HotkeyError
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHotkeyError(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return HotkeyErrorImpl.frbInternalDcoDecode(raw as List<dynamic>);
-  }
-
-  @protected
   OcrError
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOcrError(
     dynamic raw,
@@ -1110,15 +1047,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return TranslateErrorImpl.frbInternalDcoDecode(raw as List<dynamic>);
-  }
-
-  @protected
-  TrayError
-  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTrayError(
-    dynamic raw,
-  ) {
-    // Codec=Dco (DartCObject based), see doc to use other codecs
-    return TrayErrorImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -1168,6 +1096,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   DesktopEnv dco_decode_desktop_env(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return DesktopEnv.values[raw as int];
+  }
+
+  @protected
+  HotkeyError dco_decode_hotkey_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return HotkeyError_DbusError(dco_decode_String(raw[1]));
+      case 1:
+        return HotkeyError_EvdevError(dco_decode_String(raw[1]));
+      case 2:
+        return HotkeyError_AlreadyRegistered(dco_decode_String(raw[1]));
+      case 3:
+        return HotkeyError_NoKeyboardDevices();
+      case 4:
+        return HotkeyError_UnsupportedDesktop();
+      case 5:
+        return HotkeyError_ParseError(dco_decode_String(raw[1]));
+      default:
+        throw Exception("unreachable");
+    }
   }
 
   @protected
@@ -1312,6 +1261,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TrayError dco_decode_tray_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return TrayError_DbusError(dco_decode_String(raw[1]));
+      case 1:
+        return TrayError_MenuError(dco_decode_String(raw[1]));
+      case 2:
+        return TrayError_WatcherError(dco_decode_String(raw[1]));
+      case 3:
+        return TrayError_InitFailed();
+      case 4:
+        return TrayError_IconNotFound();
+      case 5:
+        return TrayError_NotificationFailed();
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
   BigInt dco_decode_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeU64(raw);
@@ -1360,18 +1330,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  HotkeyError
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHotkeyError(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return HotkeyErrorImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
   OcrError
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOcrError(
     SseDeserializer deserializer,
@@ -1390,18 +1348,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return TranslateErrorImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  TrayError
-  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTrayError(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return TrayErrorImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -1439,18 +1385,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
-  HotkeyError
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHotkeyError(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return HotkeyErrorImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
   OcrError
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOcrError(
     SseDeserializer deserializer,
@@ -1469,18 +1403,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return TranslateErrorImpl.frbInternalSseDecode(
-      sse_decode_usize(deserializer),
-      sse_decode_i_32(deserializer),
-    );
-  }
-
-  @protected
-  TrayError
-  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTrayError(
-    SseDeserializer deserializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    return TrayErrorImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -1541,6 +1463,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
     return DesktopEnv.values[inner];
+  }
+
+  @protected
+  HotkeyError sse_decode_hotkey_error(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_field0 = sse_decode_String(deserializer);
+        return HotkeyError_DbusError(var_field0);
+      case 1:
+        var var_field0 = sse_decode_String(deserializer);
+        return HotkeyError_EvdevError(var_field0);
+      case 2:
+        var var_field0 = sse_decode_String(deserializer);
+        return HotkeyError_AlreadyRegistered(var_field0);
+      case 3:
+        return HotkeyError_NoKeyboardDevices();
+      case 4:
+        return HotkeyError_UnsupportedDesktop();
+      case 5:
+        var var_field0 = sse_decode_String(deserializer);
+        return HotkeyError_ParseError(var_field0);
+      default:
+        throw UnimplementedError('');
+    }
   }
 
   @protected
@@ -1749,6 +1698,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  TrayError sse_decode_tray_error(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_field0 = sse_decode_String(deserializer);
+        return TrayError_DbusError(var_field0);
+      case 1:
+        var var_field0 = sse_decode_String(deserializer);
+        return TrayError_MenuError(var_field0);
+      case 2:
+        var var_field0 = sse_decode_String(deserializer);
+        return TrayError_WatcherError(var_field0);
+      case 3:
+        return TrayError_InitFailed();
+      case 4:
+        return TrayError_IconNotFound();
+      case 5:
+        return TrayError_NotificationFailed();
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
   BigInt sse_decode_u_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getBigUint64();
@@ -1799,19 +1774,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHotkeyError(
-    HotkeyError self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as HotkeyErrorImpl).frbInternalSseEncode(move: true),
-      serializer,
-    );
-  }
-
-  @protected
-  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOcrError(
     OcrError self,
     SseSerializer serializer,
@@ -1832,19 +1794,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as TranslateErrorImpl).frbInternalSseEncode(move: true),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTrayError(
-    TrayError self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as TrayErrorImpl).frbInternalSseEncode(move: true),
       serializer,
     );
   }
@@ -1886,19 +1835,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerHotkeyError(
-    HotkeyError self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as HotkeyErrorImpl).frbInternalSseEncode(move: null),
-      serializer,
-    );
-  }
-
-  @protected
-  void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOcrError(
     OcrError self,
     SseSerializer serializer,
@@ -1919,19 +1855,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as TranslateErrorImpl).frbInternalSseEncode(move: null),
-      serializer,
-    );
-  }
-
-  @protected
-  void
-  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerTrayError(
-    TrayError self,
-    SseSerializer serializer,
-  ) {
-    // Codec=Sse (Serialization based), see doc to use other codecs
-    sse_encode_usize(
-      (self as TrayErrorImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
@@ -1987,6 +1910,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_desktop_env(DesktopEnv self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_hotkey_error(HotkeyError self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case HotkeyError_DbusError(field0: final field0):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(field0, serializer);
+      case HotkeyError_EvdevError(field0: final field0):
+        sse_encode_i_32(1, serializer);
+        sse_encode_String(field0, serializer);
+      case HotkeyError_AlreadyRegistered(field0: final field0):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(field0, serializer);
+      case HotkeyError_NoKeyboardDevices():
+        sse_encode_i_32(3, serializer);
+      case HotkeyError_UnsupportedDesktop():
+        sse_encode_i_32(4, serializer);
+      case HotkeyError_ParseError(field0: final field0):
+        sse_encode_i_32(5, serializer);
+        sse_encode_String(field0, serializer);
+    }
   }
 
   @protected
@@ -2160,6 +2106,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_tray_error(TrayError self, SseSerializer serializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case TrayError_DbusError(field0: final field0):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(field0, serializer);
+      case TrayError_MenuError(field0: final field0):
+        sse_encode_i_32(1, serializer);
+        sse_encode_String(field0, serializer);
+      case TrayError_WatcherError(field0: final field0):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(field0, serializer);
+      case TrayError_InitFailed():
+        sse_encode_i_32(3, serializer);
+      case TrayError_IconNotFound():
+        sse_encode_i_32(4, serializer);
+      case TrayError_NotificationFailed():
+        sse_encode_i_32(5, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_u_64(BigInt self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putBigUint64(self);
@@ -2224,26 +2192,6 @@ class ConfigErrorImpl extends RustOpaque implements ConfigError {
 }
 
 @sealed
-class HotkeyErrorImpl extends RustOpaque implements HotkeyError {
-  // Not to be used by end users
-  HotkeyErrorImpl.frbInternalDcoDecode(List<dynamic> wire)
-    : super.frbInternalDcoDecode(wire, _kStaticData);
-
-  // Not to be used by end users
-  HotkeyErrorImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
-    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
-
-  static final _kStaticData = RustArcStaticData(
-    rustArcIncrementStrongCount:
-        RustLib.instance.api.rust_arc_increment_strong_count_HotkeyError,
-    rustArcDecrementStrongCount:
-        RustLib.instance.api.rust_arc_decrement_strong_count_HotkeyError,
-    rustArcDecrementStrongCountPtr:
-        RustLib.instance.api.rust_arc_decrement_strong_count_HotkeyErrorPtr,
-  );
-}
-
-@sealed
 class OcrErrorImpl extends RustOpaque implements OcrError {
   // Not to be used by end users
   OcrErrorImpl.frbInternalDcoDecode(List<dynamic> wire)
@@ -2280,25 +2228,5 @@ class TranslateErrorImpl extends RustOpaque implements TranslateError {
         RustLib.instance.api.rust_arc_decrement_strong_count_TranslateError,
     rustArcDecrementStrongCountPtr:
         RustLib.instance.api.rust_arc_decrement_strong_count_TranslateErrorPtr,
-  );
-}
-
-@sealed
-class TrayErrorImpl extends RustOpaque implements TrayError {
-  // Not to be used by end users
-  TrayErrorImpl.frbInternalDcoDecode(List<dynamic> wire)
-    : super.frbInternalDcoDecode(wire, _kStaticData);
-
-  // Not to be used by end users
-  TrayErrorImpl.frbInternalSseDecode(BigInt ptr, int externalSizeOnNative)
-    : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
-
-  static final _kStaticData = RustArcStaticData(
-    rustArcIncrementStrongCount:
-        RustLib.instance.api.rust_arc_increment_strong_count_TrayError,
-    rustArcDecrementStrongCount:
-        RustLib.instance.api.rust_arc_decrement_strong_count_TrayError,
-    rustArcDecrementStrongCountPtr:
-        RustLib.instance.api.rust_arc_decrement_strong_count_TrayErrorPtr,
   );
 }

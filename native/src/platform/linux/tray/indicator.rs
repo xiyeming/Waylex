@@ -21,7 +21,7 @@ impl TrayIndicator {
 
     pub async fn register(&mut self) -> Result<(), TrayError> {
         let conn = Connection::session().await
-            .map_err(TrayError::DbusError)?;
+            .map_err(|e| TrayError::DbusError(e.to_string()))?;
 
         let pid = std::process::id();
         let bus_name = format!("org.kde.StatusNotifierItem-{}-1", pid);
@@ -29,7 +29,7 @@ impl TrayIndicator {
 
         conn.request_name(service_name)
             .await
-            .map_err(TrayError::DbusError)?;
+            .map_err(|e| TrayError::DbusError(e.to_string()))?;
 
         self.connection = Some(conn);
         tracing::info!("SNI tray registered: {}", bus_name);

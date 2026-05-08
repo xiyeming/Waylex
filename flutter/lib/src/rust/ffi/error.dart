@@ -5,6 +5,8 @@
 
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
+part 'error.freezed.dart';
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ClipboardError>>
 abstract class ClipboardError implements RustOpaqueInterface {}
@@ -12,14 +14,34 @@ abstract class ClipboardError implements RustOpaqueInterface {}
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<ConfigError>>
 abstract class ConfigError implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<HotkeyError>>
-abstract class HotkeyError implements RustOpaqueInterface {}
-
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<OcrError>>
 abstract class OcrError implements RustOpaqueInterface {}
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<TranslateError>>
 abstract class TranslateError implements RustOpaqueInterface {}
 
-// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<TrayError>>
-abstract class TrayError implements RustOpaqueInterface {}
+@freezed
+sealed class HotkeyError with _$HotkeyError implements FrbException {
+  const HotkeyError._();
+
+  const factory HotkeyError.dbusError(String field0) = HotkeyError_DbusError;
+  const factory HotkeyError.evdevError(String field0) = HotkeyError_EvdevError;
+  const factory HotkeyError.alreadyRegistered(String field0) =
+      HotkeyError_AlreadyRegistered;
+  const factory HotkeyError.noKeyboardDevices() = HotkeyError_NoKeyboardDevices;
+  const factory HotkeyError.unsupportedDesktop() =
+      HotkeyError_UnsupportedDesktop;
+  const factory HotkeyError.parseError(String field0) = HotkeyError_ParseError;
+}
+
+@freezed
+sealed class TrayError with _$TrayError implements FrbException {
+  const TrayError._();
+
+  const factory TrayError.dbusError(String field0) = TrayError_DbusError;
+  const factory TrayError.menuError(String field0) = TrayError_MenuError;
+  const factory TrayError.watcherError(String field0) = TrayError_WatcherError;
+  const factory TrayError.initFailed() = TrayError_InitFailed;
+  const factory TrayError.iconNotFound() = TrayError_IconNotFound;
+  const factory TrayError.notificationFailed() = TrayError_NotificationFailed;
+}

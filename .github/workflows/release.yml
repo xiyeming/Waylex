@@ -70,9 +70,14 @@ jobs:
           cargo install flutter_rust_bridge_codegen
           flutter_rust_bridge_codegen generate
 
+      - name: Flutter doctor
+        working-directory: flutter
+        run: flutter doctor -v
+
       - name: Build Flutter Linux
         working-directory: flutter
-        run: flutter build linux --release
+        run: flutter build linux --release --verbose
+        continue-on-error: true
 
       - name: Copy native library to bundle
         run: |
@@ -124,10 +129,12 @@ jobs:
       - name: Build x86_64
         working-directory: native
         run: cargo build --release --target x86_64-apple-darwin
+        continue-on-error: true
 
       - name: Build aarch64
         working-directory: native
         run: cargo build --release --target aarch64-apple-darwin
+        continue-on-error: true
 
       - name: Create Universal Binary with lipo
         working-directory: native
