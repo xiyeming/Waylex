@@ -52,14 +52,13 @@ secret-service = { version = "5.1", features = ["rt-tokio-crypto-rust"] }
 global-hotkey = "0.6"
 arboard = "3.4"
 tray-icon = "0.19"
-screenshots = "0.8"
+xcap = "0.9"
 
 # ==================== macOS 独占依赖 ====================
 [target.'cfg(target_os = "macos")'.dependencies]
 global-hotkey = "0.6"
 arboard = "3.4"
 tray-icon = "0.19"
-screenshots = "0.8"
 
 [dev-dependencies]
 tokio-test = "0.4"

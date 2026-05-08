@@ -179,16 +179,21 @@ impl PlatformBackend for WindowsBackend {
     }
 
     async fn screenshot(&self) -> Result<Vec<u8>, OcrError> {
-        let screens = screenshots::Screen::all()
-            .map_err(|e| OcrError::ScreenshotFailed)?;
+        let monitors = xcap::Monitor::all()
+            .map_err(|_| OcrError::ScreenshotFailed)?;
 
-        let screen = screens.first()
+        let monitor = monitors.first()
             .ok_or(OcrError::ScreenshotFailed)?;
 
-        let image = screen.capture()
-            .map_err(|e| OcrError::ScreenshotFailed)?;
+        let image = monitor.capture_image()
+            .map_err(|_| OcrError::ScreenshotFailed)?;
 
-        Ok(image.to_png())
+        let mut buf = Vec::new();
+        let dynamic = image::DynamicImage::ImageRgba8(image);
+        dynamic.write_to(&mut std::io::Cursor::new(&mut buf), image::ImageFormat::Png)
+            .map_err(|_| OcrError::ScreenshotFailed)?;
+
+        Ok(buf)
     }
 
     async fn recognize(&self, image_data: Vec<u8>, lang: String) -> Result<OcrResult, OcrError> {
