@@ -23,7 +23,7 @@ pub struct MacOsBackend {
     hotkey_manager: Arc<Mutex<SendSyncHotkeyManager>>,
     clipboard: Arc<Mutex<SendSyncClipboard>>,
     tray_icon: Arc<Mutex<Option<SendSyncTrayIcon>>>,
-    registered_hotkeys: Arc<Mutex<Vec<(global_hotkey::HotKey, String)>>>,
+    registered_hotkeys: Arc<Mutex<Vec<(global_hotkey::hotkey::HotKey, String)>>>,
 }
 
 impl MacOsBackend {
@@ -41,8 +41,8 @@ impl MacOsBackend {
         }
     }
 
-    fn parse_hotkey(combo: &str) -> Result<global_hotkey::HotKey, HotkeyError> {
-        use global_hotkey::{HotKey, Modifiers, Code};
+    fn parse_hotkey(combo: &str) -> Result<global_hotkey::hotkey::HotKey, HotkeyError> {
+        use global_hotkey::hotkey::{HotKey, Modifiers, Code};
 
         let parts: Vec<&str> = combo.split('+').map(|s| s.trim()).collect();
         if parts.is_empty() {
