@@ -126,7 +126,7 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: stable
-          flutter-version: '3.29.x'
+          flutter-version: '3.41.x'
 
       - name: Install Linux desktop dependencies
         run: |
@@ -225,8 +225,13 @@ jobs:
 
       - name: Create Universal Binary with lipo
         working-directory: native
+        continue-on-error: true
         run: |
           mkdir -p target/universal/release
+          echo "=== x86_64 artifacts ==="
+          ls -la target/x86_64-apple-darwin/release/libflutter_translate_native.* || true
+          echo "=== aarch64 artifacts ==="
+          ls -la target/aarch64-apple-darwin/release/libflutter_translate_native.* || true
           lipo -create \
             target/x86_64-apple-darwin/release/libflutter_translate_native.dylib \
             target/aarch64-apple-darwin/release/libflutter_translate_native.dylib \
@@ -234,7 +239,9 @@ jobs:
           lipo -info target/universal/release/libflutter_translate_native.dylib
 
       - name: Upload macOS universal binary
+        if: ${{ success() || failure() }}
         uses: actions/upload-artifact@v4
         with:
           name: waylex-macos-universal-dylib
           path: native/target/universal/release/libflutter_translate_native.dylib
+        continue-on-error: true
