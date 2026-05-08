@@ -20,8 +20,11 @@ modules:
     buildsystem: simple
     build-commands:
       - install -Dm755 Waylex /app/bin/Waylex
-      - cp -r lib /app/bin/
       - cp -r data /app/bin/
+      - |
+        for f in lib/*.so*; do
+          install -Dm755 "$f" "/app/lib/$(basename $f)"
+        done
       - install -Dm644 com.xym.ft.Waylex.png /app/share/icons/hicolor/256x256/apps/com.xym.ft.Waylex.png
       - install -Dm644 com.xym.ft.Waylex.desktop /app/share/applications/com.xym.ft.Waylex.desktop
       - install -Dm644 com.xym.ft.Waylex.metainfo.xml /app/share/metainfo/com.xym.ft.Waylex.metainfo.xml
