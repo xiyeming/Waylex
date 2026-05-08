@@ -6,6 +6,7 @@ command: Waylex
 
 finish-args:
   - --share=ipc
+  - --share=network
   - --socket=fallback-x11
   - --socket=wayland
   - --device=dri
@@ -21,6 +22,7 @@ modules:
     build-commands:
       - install -Dm755 Waylex /app/bin/Waylex
       - cp -r data /app/bin/
+      - cp -r lib /app/bin/
       - |
         for f in lib/*.so*; do
           install -Dm755 "$f" "/app/lib/$(basename $f)"
