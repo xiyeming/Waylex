@@ -5,7 +5,7 @@ set -e
 echo "=== Flutter Translate AppImage Builder ==="
 
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-APP_NAME="flutter-translate"
+APP_NAME="Waylex"
 BUILD_DIR="$PROJECT_DIR/build"
 APPDIR="$BUILD_DIR/AppDir"
 
@@ -25,7 +25,7 @@ cp -r "$PROJECT_DIR/flutter/build/linux/x64/release/bundle/"* "$APPDIR/usr/bin/"
 echo "Creating desktop entry..."
 cat > "$APPDIR/usr/share/applications/$APP_NAME.desktop" << EOF
 [Desktop Entry]
-Name=Flutter Translate
+Name=Waylex
 Comment=AI Translation Desktop Tool
 Exec=$APP_NAME
 Icon=$APP_NAME
@@ -41,17 +41,18 @@ cat > "$APPDIR/AppRun" << 'EOF'
 SELF="$(readlink -f "$0")"
 HERE="${SELF%/*}"
 export PATH="$HERE/usr/bin:$PATH"
-exec "$HERE/usr/bin/flutter_translate" "$@"
+exec "$HERE/usr/bin/Waylex" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"
 
 echo "Copying icon..."
 # Generate a placeholder icon if none exists
-if [ ! -f "$PROJECT_DIR/flutter/assets/icon.png" ]; then
+ICON_PATH="$PROJECT_DIR/flutter/assets/icons/tray_icon.png"
+if [ ! -f "$ICON_PATH" ]; then
     echo "Warning: No icon found, skipping icon copy"
 else
-    cp "$PROJECT_DIR/flutter/assets/icon.png" "$APPDIR/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
-    cp "$PROJECT_DIR/flutter/assets/icon.png" "$APPDIR/$APP_NAME.png"
+    cp "$ICON_PATH" "$APPDIR/usr/share/icons/hicolor/256x256/apps/$APP_NAME.png"
+    cp "$ICON_PATH" "$APPDIR/$APP_NAME.png"
 fi
 
 echo "Packaging AppImage..."

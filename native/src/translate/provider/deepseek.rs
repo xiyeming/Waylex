@@ -11,6 +11,12 @@ pub struct DeepSeekProvider {
     provider_id: String,
 }
 
+impl Default for DeepSeekProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DeepSeekProvider {
     pub fn new() -> Self {
         Self {
@@ -60,7 +66,7 @@ impl TranslateProvider for DeepSeekProvider {
             }))
             .send()
             .await
-            .map_err(|e| TranslateError::HttpError(e))?;
+            .map_err(TranslateError::HttpError)?;
 
         let status = response.status();
         if !status.is_success() {

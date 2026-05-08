@@ -11,6 +11,12 @@ pub struct KimiProvider {
     provider_id: String,
 }
 
+impl Default for KimiProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl KimiProvider {
     pub fn new() -> Self {
         Self {
@@ -61,7 +67,7 @@ impl TranslateProvider for KimiProvider {
             }))
             .send()
             .await
-            .map_err(|e| TranslateError::HttpError(e))?;
+            .map_err(TranslateError::HttpError)?;
 
         let status = response.status();
         if !status.is_success() {

@@ -11,6 +11,12 @@ pub struct CustomProvider {
     provider_id: String,
 }
 
+impl Default for CustomProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl CustomProvider {
     pub fn new() -> Self {
         Self {
@@ -94,7 +100,7 @@ impl TranslateProvider for CustomProvider {
             }))
             .send()
             .await
-            .map_err(|e| TranslateError::HttpError(e))?;
+            .map_err(TranslateError::HttpError)?;
 
         let status = response.status();
         if !status.is_success() {

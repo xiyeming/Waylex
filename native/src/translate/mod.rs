@@ -62,6 +62,12 @@ pub struct RequestRouter {
     registry: ProviderRegistry,
 }
 
+impl Default for RequestRouter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl RequestRouter {
     pub fn new() -> Self {
         Self {
@@ -132,7 +138,7 @@ impl ParallelTranslator {
 
         let mut results = Vec::new();
         for handle in handles {
-            match handle.await.map_err(|e| TranslateError::TaskJoinError(e))? {
+            match handle.await.map_err(TranslateError::TaskJoinError)? {
                 Ok(result) => results.push(result),
                 Err(e) => results.push(TranslationResult {
                     provider_id: "unknown".to_string(),

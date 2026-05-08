@@ -2,6 +2,12 @@ pub struct TranslationEngine {
     initialized: bool,
 }
 
+impl Default for TranslationEngine {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TranslationEngine {
     pub fn new() -> Self {
         Self { initialized: false }

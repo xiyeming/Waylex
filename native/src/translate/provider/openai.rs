@@ -11,6 +11,12 @@ pub struct OpenAIProvider {
     provider_id: String,
 }
 
+impl Default for OpenAIProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl OpenAIProvider {
     pub fn new() -> Self {
         Self {
@@ -66,7 +72,7 @@ impl TranslateProvider for OpenAIProvider {
             }))
             .send()
             .await
-            .map_err(|e| TranslateError::HttpError(e))?;
+            .map_err(TranslateError::HttpError)?;
 
         let status = response.status();
         if !status.is_success() {

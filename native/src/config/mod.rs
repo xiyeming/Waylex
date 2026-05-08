@@ -53,9 +53,9 @@ impl ConfigManager {
         }
 
         let rows = sqlx::query_as::<_, ProviderRow>(
-            "SELECT id, name, api_url, model, auth_type, is_active, sort_order, system_prompt, created_at 
+            "SELECT id, name, api_url, model, auth_type, is_active, sort_order, system_prompt, created_at
              FROM providers ORDER BY sort_order ASC"
-        ).fetch_all(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+        ).fetch_all(&pool).await.map_err(ConfigError::DbError)?;
 
         let mut providers = Vec::new();
         for row in rows {
@@ -108,7 +108,7 @@ impl ConfigManager {
         .bind(if config.is_active && config.api_key.is_some() { 1 } else { 0 })
         .bind(config.sort_order)
         .bind(&config.system_prompt)
-        .execute(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+        .execute(&pool).await.map_err(ConfigError::DbError)?;
 
         Ok(())
     }
@@ -120,7 +120,7 @@ impl ConfigManager {
 
         sqlx::query("DELETE FROM providers WHERE id = $1")
             .bind(id)
-            .execute(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+            .execute(&pool).await.map_err(ConfigError::DbError)?;
 
         Ok(())
     }
@@ -132,7 +132,7 @@ impl ConfigManager {
 
         let row = sqlx::query(
             "SELECT last_provider_id, last_compare_providers, last_used FROM active_sessions WHERE id = 1"
-        ).fetch_one(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+        ).fetch_one(&pool).await.map_err(ConfigError::DbError)?;
 
         let compare_providers: Vec<String> = serde_json::from_str(
             &row.try_get::<String, _>("last_compare_providers").unwrap_or_default()
@@ -142,7 +142,7 @@ impl ConfigManager {
         let last_used = last_used_str
             .and_then(|s| chrono::DateTime::parse_from_rfc3339(&s).ok())
             .map(|dt| dt.with_timezone(&Utc))
-            .unwrap_or_else(|| Utc::now());
+            .unwrap_or_else(Utc::now);
 
         Ok(ActiveSession {
             last_provider_id: row.try_get::<String, _>("last_provider_id").unwrap_or_default(),
@@ -161,14 +161,14 @@ impl ConfigManager {
         let new_provider_id = provider_id.unwrap_or(session.last_provider_id);
         let new_compare_providers = compare_providers.unwrap_or(session.last_compare_providers);
         let compare_json = serde_json::to_string(&new_compare_providers)
-            .map_err(|e| ConfigError::SerdeError(e))?;
+            .map_err(ConfigError::SerdeError)?;
 
         sqlx::query(
             "UPDATE active_sessions SET last_provider_id = $1, last_compare_providers = $2, last_used = datetime('now') WHERE id = 1"
         )
         .bind(&new_provider_id)
         .bind(&compare_json)
-        .execute(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+        .execute(&pool).await.map_err(ConfigError::DbError)?;
 
         Ok(())
     }
@@ -188,7 +188,7 @@ impl ConfigManager {
 
         let rows = sqlx::query_as::<_, ShortcutRow>(
             "SELECT id, action, key_combination, enabled FROM shortcut_bindings"
-        ).fetch_all(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+        ).fetch_all(&pool).await.map_err(ConfigError::DbError)?;
 
         Ok(rows.into_iter().map(|row| ShortcutBinding {
             id: row.id,
@@ -213,7 +213,7 @@ impl ConfigManager {
         .bind(&binding.action)
         .bind(&binding.key_combination)
         .bind(if binding.enabled { 1 } else { 0 })
-        .execute(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+        .execute(&pool).await.map_err(ConfigError::DbError)?;
 
         Ok(())
     }
@@ -233,7 +233,7 @@ impl ConfigManager {
 
         let rows = sqlx::query_as::<_, LangRow>(
             "SELECT code, display_name, usage_count, is_favorite FROM language_prefs ORDER BY usage_count DESC"
-        ).fetch_all(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+        ).fetch_all(&pool).await.map_err(ConfigError::DbError)?;
 
         Ok(rows.into_iter().map(|row| LanguagePref {
             code: row.code,
@@ -250,7 +250,7 @@ impl ConfigManager {
 
         let row = sqlx::query(
             "SELECT id, theme, default_target_lang, auto_detect, history_enabled, created_at, updated_at FROM user_config WHERE id = 'default'"
-        ).fetch_one(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+        ).fetch_one(&pool).await.map_err(ConfigError::DbError)?;
 
         let created_at_str: Option<String> = row.try_get::<String, _>("created_at").ok();
         let updated_at_str: Option<String> = row.try_get::<String, _>("updated_at").ok();
@@ -265,12 +265,12 @@ impl ConfigManager {
                 .as_ref()
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
                 .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|| Utc::now()),
+                .unwrap_or_else(Utc::now),
             updated_at: updated_at_str
                 .as_ref()
                 .and_then(|s| chrono::DateTime::parse_from_rfc3339(s).ok())
                 .map(|dt| dt.with_timezone(&Utc))
-                .unwrap_or_else(|| Utc::now()),
+                .unwrap_or_else(Utc::now),
         })
     }
 
@@ -290,7 +290,7 @@ impl ConfigManager {
 
         let rows = sqlx::query_as::<_, TemplateRow>(
             "SELECT id, name, content, is_active, created_at FROM prompt_templates ORDER BY created_at DESC"
-        ).fetch_all(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+        ).fetch_all(&pool).await.map_err(ConfigError::DbError)?;
 
         Ok(rows.into_iter().map(|r| PromptTemplate {
             id: r.id,
@@ -307,7 +307,7 @@ impl ConfigManager {
         let pool = storage::get_pool().await;
         if tpl.is_active {
             sqlx::query("UPDATE prompt_templates SET is_active = 0")
-                .execute(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+                .execute(&pool).await.map_err(ConfigError::DbError)?;
         }
         sqlx::query(
             r#"INSERT INTO prompt_templates (id, name, content, is_active, created_at)
@@ -316,21 +316,21 @@ impl ConfigManager {
         )
         .bind(&tpl.id).bind(&tpl.name).bind(&tpl.content)
         .bind(if tpl.is_active { 1 } else { 0 })
-        .execute(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+        .execute(&pool).await.map_err(ConfigError::DbError)?;
         Ok(())
     }
 
     pub async fn delete_prompt_template(id: &str) -> Result<(), ConfigError> {
         let pool = storage::get_pool().await;
         sqlx::query("DELETE FROM prompt_templates WHERE id = $1")
-            .bind(id).execute(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+            .bind(id).execute(&pool).await.map_err(ConfigError::DbError)?;
         Ok(())
     }
 
     pub async fn get_active_prompt() -> Result<Option<PromptTemplate>, ConfigError> {
         let pool = storage::get_pool().await;
         let row = sqlx::query("SELECT id, name, content, is_active, created_at FROM prompt_templates WHERE is_active = 1")
-            .fetch_optional(&pool).await.map_err(|e| ConfigError::DbError(e))?;
+            .fetch_optional(&pool).await.map_err(ConfigError::DbError)?;
         match row {
             Some(r) => {
                 let created_at: String = r.get("created_at");

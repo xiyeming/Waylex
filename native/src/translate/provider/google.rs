@@ -11,6 +11,12 @@ pub struct GoogleProvider {
     provider_id: String,
 }
 
+impl Default for GoogleProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GoogleProvider {
     pub fn new() -> Self {
         Self {
@@ -53,7 +59,7 @@ impl TranslateProvider for GoogleProvider {
             }))
             .send()
             .await
-            .map_err(|e| TranslateError::HttpError(e))?;
+            .map_err(TranslateError::HttpError)?;
 
         let status = response.status();
         if !status.is_success() {

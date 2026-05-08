@@ -11,6 +11,12 @@ pub struct QwenProvider {
     provider_id: String,
 }
 
+impl Default for QwenProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl QwenProvider {
     pub fn new() -> Self {
         Self {
@@ -62,7 +68,7 @@ impl TranslateProvider for QwenProvider {
             }))
             .send()
             .await
-            .map_err(|e| TranslateError::HttpError(e))?;
+            .map_err(TranslateError::HttpError)?;
 
         let status = response.status();
         if !status.is_success() {

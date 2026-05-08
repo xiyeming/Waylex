@@ -18,10 +18,7 @@ impl OcrService {
         tokio::task::spawn_blocking(move || Self::recognize_blocking(&data, &lang))
             .await
             .map_err(|e| {
-                OcrError::CommandError(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    e.to_string(),
-                ))
+                OcrError::CommandError(std::io::Error::other(e.to_string()))
             })?
     }
 

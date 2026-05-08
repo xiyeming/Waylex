@@ -11,6 +11,12 @@ pub struct AnthropicProvider {
     provider_id: String,
 }
 
+impl Default for AnthropicProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AnthropicProvider {
     pub fn new() -> Self {
         Self {
@@ -62,7 +68,7 @@ impl TranslateProvider for AnthropicProvider {
             }))
             .send()
             .await
-            .map_err(|e| TranslateError::HttpError(e))?;
+            .map_err(TranslateError::HttpError)?;
 
         let status = response.status();
         if !status.is_success() {

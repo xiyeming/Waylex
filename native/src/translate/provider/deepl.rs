@@ -10,6 +10,12 @@ pub struct DeepLProvider {
     provider_id: String,
 }
 
+impl Default for DeepLProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl DeepLProvider {
     pub fn new() -> Self {
         Self {
@@ -69,7 +75,7 @@ impl TranslateProvider for DeepLProvider {
             .form(&params)
             .send()
             .await
-            .map_err(|e| TranslateError::HttpError(e))?;
+            .map_err(TranslateError::HttpError)?;
 
         let status = response.status();
         if !status.is_success() {
@@ -119,7 +125,7 @@ impl TranslateProvider for DeepLProvider {
 
         let response = self
             .client
-            .post(&self.get_api_url())
+            .post(self.get_api_url())
             .header("Authorization", format!("DeepL-Auth-Key {}", api_key))
             .form(&[("text", "test"), ("target_lang", "EN")])
             .send()

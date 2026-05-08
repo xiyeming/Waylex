@@ -11,6 +11,12 @@ pub struct AzureProvider {
     provider_id: String,
 }
 
+impl Default for AzureProvider {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl AzureProvider {
     pub fn new() -> Self {
         Self {
@@ -86,7 +92,7 @@ impl TranslateProvider for AzureProvider {
             }))
             .send()
             .await
-            .map_err(|e| TranslateError::HttpError(e))?;
+            .map_err(TranslateError::HttpError)?;
 
         let status = response.status();
         if !status.is_success() {

@@ -84,8 +84,8 @@ pub fn init_platform() -> Result<(), PlatformInitError> {
 }
 
 /// 获取已初始化的平台后端实例
-pub fn platform() -> &'static Box<dyn PlatformBackend> {
-    PLATFORM.get().expect("Platform backend not initialized. Call init_platform() first.")
+pub fn platform() -> &'static dyn PlatformBackend {
+    PLATFORM.get().expect("Platform backend not initialized. Call init_platform() first.").as_ref()
 }
 
 /// 平台初始化错误
