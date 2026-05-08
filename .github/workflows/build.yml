@@ -60,8 +60,11 @@ jobs:
             image: fedora:41
             install: dnf install -y curl gcc openssl-devel pkgconfig sqlite-devel
           - distro: opensuse
-            image: opensuse/tumbleweed
-            install: zypper ref && zypper --non-interactive install curl gcc libopenssl-devel pkgconfig sqlite3-devel
+            image: opensuse/leap:15.6
+            install: |
+              export PATH="/usr/sbin:$PATH"
+              zypper --non-interactive ref
+              zypper --non-interactive install curl gcc libopenssl-devel pkgconfig sqlite3-devel
     container:
       image: ${{ matrix.image }}
     steps:
