@@ -189,14 +189,14 @@ pub async fn delete_prompt_template(id: String) -> Result<(), ConfigError> {
 
 #[frb]
 pub fn detect_desktop_env() -> DesktopEnv {
-    ConfigManager::detect_desktop_env()
+    crate::platform::platform().detect_desktop_env()
 }
 
 #[frb]
 pub async fn ocr_screenshot() -> Result<String, OcrError> {
-    let ocr_service = crate::ocr::get_ocr_service().await;
-    let image_data = ocr_service.screenshot().await?;
-    let result = ocr_service.recognize(&image_data, "zh").await?;
+    let platform = crate::platform::platform();
+    let image_data = platform.screenshot().await?;
+    let result = platform.recognize(image_data, "zh".to_string()).await?;
     Ok(result.text)
 }
 
@@ -212,46 +212,37 @@ pub async fn update_shortcut(binding: ShortcutBinding) -> Result<(), ConfigError
 
 #[frb]
 pub async fn register_hotkeys(shortcuts: Vec<ShortcutBinding>) -> Result<(), HotkeyError> {
-    let mut hotkey_service = crate::hotkey::get_hotkey_service().await;
-    hotkey_service.register_all(shortcuts).await
+    crate::platform::platform().register_hotkeys(shortcuts).await
 }
 
 #[frb]
 pub fn unregister_hotkeys() -> Result<(), HotkeyError> {
-    if let Some(mut hotkey_service) = crate::hotkey::get_hotkey_service_sync() {
-        hotkey_service.unregister_all()
-    } else {
-        Ok(())
-    }
+    crate::platform::platform().unregister_hotkeys()
 }
 
 /// Poll for the next hotkey event. Returns None if no event available.
 #[frb]
 pub fn poll_hotkey_event() -> Option<String> {
-    let mut hotkey_service = crate::hotkey::get_hotkey_service_sync()?;
-    hotkey_service.poll_event(0)
+    crate::platform::platform().poll_hotkey_event()
 }
 
 // ========== 剪贴板服务 ==========
 
 #[frb]
 pub fn get_clipboard_text() -> Result<String, ClipboardError> {
-    let clipboard = crate::clipboard::get_clipboard_service();
-    clipboard.get_text()
+    crate::platform::platform().get_clipboard_text()
 }
 
 #[frb]
 pub fn set_clipboard_text(text: String) -> Result<(), ClipboardError> {
-    let clipboard = crate::clipboard::get_clipboard_service();
-    clipboard.set_text(text)
+    crate::platform::platform().set_clipboard_text(text)
 }
 
 // ========== 托盘服务 ==========
 
 #[frb]
 pub async fn init_tray() -> Result<(), TrayError> {
-    let mut tray = crate::tray::get_tray_service().await;
-    tray.init().await
+    crate::platform::platform().init_tray().await
 }
 
 #[frb]
@@ -259,8 +250,7 @@ pub fn show_tray_notification(
     title: String,
     body: String,
 ) -> Result<(), TrayError> {
-    let tray = crate::tray::get_tray_service_sync();
-    tray.show_notification(&title, &body)
+    crate::platform::platform().show_tray_notification(&title, &body)
 }
 
 // ========== 内部辅助函数 ==========

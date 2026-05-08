@@ -1,0 +1,226 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  linux-native:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            native/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('native/Cargo.lock') }}
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libssl-dev pkg-config libsqlite3-dev
+
+      - name: cargo check
+        working-directory: native
+        run: cargo check
+
+      - name: cargo test
+        working-directory: native
+        run: cargo test --lib
+
+      - name: cargo clippy
+        working-directory: native
+        run: cargo clippy --lib --tests -- -D warnings
+
+  linux-multi-distro:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - distro: ubuntu
+            image: ubuntu:24.04
+            install: apt-get update && apt-get install -y curl build-essential libssl-dev pkg-config libsqlite3-dev
+          - distro: debian
+            image: debian:12
+            install: apt-get update && apt-get install -y curl build-essential libssl-dev pkg-config libsqlite3-dev
+          - distro: fedora
+            image: fedora:41
+            install: dnf install -y curl gcc openssl-devel pkgconfig sqlite-devel
+          - distro: opensuse
+            image: opensuse/tumbleweed
+            install: zypper install -y curl gcc libopenssl-devel pkgconfig sqlite3-devel
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: ${{ matrix.install }}
+
+      - name: Install Rust
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+      - name: cargo check
+        working-directory: native
+        run: cargo check
+
+      - name: cargo test
+        working-directory: native
+        run: cargo test --lib
+
+  cross-compile-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain with targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc, x86_64-apple-darwin, aarch64-apple-darwin
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            native/target
+          key: ${{ runner.os }}-cargo-cross-${{ hashFiles('native/Cargo.lock') }}
+
+      - name: Check Windows x86_64
+        working-directory: native
+        run: cargo check --target x86_64-pc-windows-msvc || true
+
+      - name: Check macOS x86_64
+        working-directory: native
+        run: cargo check --target x86_64-apple-darwin || true
+
+      - name: Check macOS aarch64
+        working-directory: native
+        run: cargo check --target aarch64-apple-darwin || true
+
+  flutter-linux:
+    runs-on: ubuntu-latest
+    needs: [linux-native]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.24.x'
+
+      - name: Install Linux desktop dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            ninja-build libgtk-3-dev libblkid-dev liblzma-dev \
+            libssl-dev pkg-config libsqlite3-dev
+
+      - name: Enable Linux desktop
+        working-directory: flutter
+        run: flutter config --enable-linux-desktop
+
+      - name: Get Flutter dependencies
+        working-directory: flutter
+        run: flutter pub get
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build Rust library
+        working-directory: native
+        run: cargo build --release
+
+      - name: Generate FFI bindings
+        working-directory: flutter
+        run: |
+          cargo install flutter_rust_bridge_codegen
+          flutter_rust_bridge_codegen generate
+
+      - name: Build Flutter Linux
+        working-directory: flutter
+        run: flutter build linux --release
+
+      - name: Copy native library to bundle
+        run: |
+          mkdir -p flutter/build/linux/x64/release/bundle/lib
+          cp native/target/release/libflutter_translate_native.so flutter/build/linux/x64/release/bundle/lib/
+
+      - name: Upload Flutter build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: waylex-linux-x64
+          path: flutter/build/linux/x64/release/bundle/
+
+      - name: Build AppImage
+        run: |
+          sudo apt-get install -y wget
+          ./scripts/package_appimage.sh
+        continue-on-error: true
+
+      - name: Upload AppImage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: waylex-appimage
+          path: build/*.AppImage
+        continue-on-error: true
+
+  macos-universal-binary:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain with targets
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin,aarch64-apple-darwin
+
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            native/target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('native/Cargo.lock') }}
+
+      - name: Build x86_64
+        working-directory: native
+        run: cargo build --release --target x86_64-apple-darwin
+
+      - name: Build aarch64
+        working-directory: native
+        run: cargo build --release --target aarch64-apple-darwin
+
+      - name: Create Universal Binary with lipo
+        working-directory: native
+        run: |
+          mkdir -p target/universal/release
+          lipo -create \
+            target/x86_64-apple-darwin/release/libflutter_translate_native.dylib \
+            target/aarch64-apple-darwin/release/libflutter_translate_native.dylib \
+            -output target/universal/release/libflutter_translate_native.dylib
+          lipo -info target/universal/release/libflutter_translate_native.dylib
+
+      - name: Upload macOS universal binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: waylex-macos-universal-dylib
+          path: native/target/universal/release/libflutter_translate_native.dylib

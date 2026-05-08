@@ -1,13 +1,13 @@
-pub mod kde;
-pub mod hyprland;
 pub mod evdev;
+pub mod hyprland;
+pub mod kde;
 
 use crate::ffi::error::HotkeyError;
 use crate::ffi::types::ShortcutBinding;
 use crate::config::ConfigManager;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::broadcast;
 
 pub struct HotkeyService {
     registered: Vec<ShortcutBinding>,
@@ -116,17 +116,4 @@ impl HotkeyService {
             }
         }
     }
-}
-
-// Single shared instance using tokio::sync::Mutex.
-// Async access via .lock().await, sync access via .try_lock().
-static HOTKEY_SERVICE: once_cell::sync::Lazy<Mutex<HotkeyService>> =
-    once_cell::sync::Lazy::new(|| Mutex::new(HotkeyService::new()));
-
-pub async fn get_hotkey_service() -> tokio::sync::MutexGuard<'static, HotkeyService> {
-    HOTKEY_SERVICE.lock().await
-}
-
-pub fn get_hotkey_service_sync() -> Option<tokio::sync::MutexGuard<'static, HotkeyService>> {
-    HOTKEY_SERVICE.try_lock().ok()
 }

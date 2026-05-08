@@ -121,6 +121,9 @@ mod tests {
             response_time_ms: 0,
             is_success: false,
             error_message: Some("API error".to_string()),
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
         };
 
         assert!(!result.is_success);

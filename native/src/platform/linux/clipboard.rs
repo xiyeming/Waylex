@@ -82,10 +82,3 @@ impl WaylandClipboardService {
         }
     }
 }
-
-static CLIPBOARD_SERVICE: once_cell::sync::Lazy<ClipboardService> =
-    once_cell::sync::Lazy::new(|| ClipboardService::new().unwrap());
-
-pub fn get_clipboard_service() -> &'static ClipboardService {
-    &CLIPBOARD_SERVICE
-}

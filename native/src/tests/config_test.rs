@@ -51,6 +51,7 @@ mod tests {
             auth_type: "api_key".to_string(),
             is_active: true,
             sort_order: 0,
+            system_prompt: None,
             created_at: chrono::Utc::now(),
         };
 
@@ -94,7 +95,7 @@ mod tests {
 
         let json = serde_json::to_string(&binding).unwrap();
         let parsed: ShortcutBinding = serde_json::from_str(&json).unwrap();
-        assert_eq!(parsed.key_combination, "Ctrl+Shift+T");
+        assert_eq!(parsed.key_combination, "Super+Alt+F");
         assert!(parsed.enabled);
     }
 

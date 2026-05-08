@@ -44,18 +44,3 @@ impl TrayService {
         self.indicator.update_tooltip(tooltip).await
     }
 }
-
-static TRAY_SERVICE: once_cell::sync::Lazy<tokio::sync::Mutex<TrayService>> =
-    once_cell::sync::Lazy::new(|| {
-        tokio::sync::Mutex::new(TrayService::new())
-    });
-
-pub async fn get_tray_service() -> tokio::sync::MutexGuard<'static, TrayService> {
-    TRAY_SERVICE.lock().await
-}
-
-pub fn get_tray_service_sync() -> std::sync::MutexGuard<'static, TrayService> {
-    static SYNC_SERVICE: once_cell::sync::Lazy<std::sync::Mutex<TrayService>> =
-        once_cell::sync::Lazy::new(|| std::sync::Mutex::new(TrayService::new()));
-    SYNC_SERVICE.lock().unwrap()
-}

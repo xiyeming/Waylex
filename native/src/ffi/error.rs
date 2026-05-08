@@ -146,4 +146,7 @@ pub enum HotkeyError {
 
     #[error("Unsupported desktop environment")]
     UnsupportedDesktop,
+
+    #[error("Failed to parse hotkey: {0}")]
+    ParseError(String),
 }

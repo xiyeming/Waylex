@@ -3,12 +3,10 @@
 mod frb_generated; /* AUTO INJECTED BY flutter_rust_bridge. This line may not be accurate, and you can change it according to your needs. */
 
 pub mod ffi;
-pub mod tray;
-pub mod hotkey;
-pub mod clipboard;
-pub mod ocr;
+pub mod platform;
 pub mod translate;
 pub mod config;
+pub mod ocr;
 
 #[cfg(test)]
 mod tests;
@@ -33,6 +31,10 @@ pub fn init_services() {
             .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
             .try_init();
         tracing::info!("Initializing flutter-translate services...");
+
+        if let Err(e) = crate::platform::init_platform() {
+            tracing::warn!("Platform init failed (maybe already initialized): {}", e);
+        }
 
         RUNTIME.spawn(async {
             crate::translate::init_router().await;

@@ -1,0 +1,41 @@
+app-id: com.waylex.Waylex
+runtime: org.freedesktop.Platform
+runtime-version: "24.08"
+sdk: org.freedesktop.Sdk
+command: Waylex
+finish-args:
+  - --share=ipc
+  - --socket=fallback-x11
+  - --socket=wayland
+  - --device=dri
+  - --share=network
+  - --filesystem=xdg-config
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=org.freedesktop.portal.Desktop
+
+modules:
+  - name: tesseract
+    buildsystem: autotools
+    sources:
+      - type: archive
+        url: https://github.com/tesseract-ocr/tesseract/archive/refs/tags/5.5.0.tar.gz
+        sha256: "f2fb34ca035b6d087a42875a35a7a5c4155fa9979c6132365b1e5a28ebc3fc11"
+    modules:
+      - name: leptonica
+        buildsystem: autotools
+        sources:
+          - type: archive
+            url: https://github.com/DanBloomberg/leptonica/archive/refs/tags/1.85.0.tar.gz
+            sha256: "c13ea309eaf707fe11c0b685728f9053e2e4e4fa8e9b7b6b3714f5c731c997e6"
+
+  - name: waylex
+    buildsystem: simple
+    build-commands:
+      - install -D Waylex /app/bin/Waylex
+      - install -D lib/libflutter_translate_native.so /app/lib/libflutter_translate_native.so
+      - cp -r data /app/share/
+      - install -D com.waylex.Waylex.desktop /app/share/applications/com.waylex.Waylex.desktop
+      - install -D com.waylex.Waylex.png /app/share/icons/hicolor/256x256/apps/com.waylex.Waylex.png
+    sources:
+      - type: dir
+        path: flutter/build/linux/x64/release/bundle

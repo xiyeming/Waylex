@@ -1,0 +1,20 @@
+# Waylex aarch64 交叉编译环境
+# 用法: docker build -f Dockerfile.aarch64 -t waylex-aarch64 .
+#       docker run --rm -v $(pwd):/workspace waylex-aarch64
+
+FROM messense/rust-musl-cross:aarch64-musl
+
+WORKDIR /workspace
+
+# 安装系统依赖（tesseract 头文件等，如有需要）
+RUN apt-get update && apt-get install -y \
+    pkg-config \
+    libssl-dev:arm64 \
+    && rm -rf /var/lib/apt/lists/*
+
+# 预安装 Rust aarch64 目标
+RUN rustup target add aarch64-unknown-linux-gnu
+
+ENV CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc
+
+CMD ["cargo", "build", "--release", "--target", "aarch64-unknown-linux-gnu"]

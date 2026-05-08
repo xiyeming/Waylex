@@ -102,6 +102,8 @@ API Key 的存储策略（`native/src/config/secret.rs`）：
 
 `native/src/translate/mod.rs` 定义了 `TranslateProvider` trait 和 `ProviderRegistry`。但实际翻译调用在 `ffi/bridge.rs` 中直接通过 `match provider_id` 分发到各个 `translate_*` 函数（非 trait 动态分发）。10 家厂商中 openai/deepseek/qwen/kimi/glm/custom 共用 `translate_openai_compat()`，其余各家独立实现。
 
+翻译调用链路：UI 输入 → `TranslationService.translate()` → `ffi_datasource.dart` → `bridge.rs translate_text()` → `match provider_id` → 具体厂商实现 → 返回 `TranslationResult`。
+
 ### 热键三层自适应
 
 `native/src/hotkey/mod.rs` 的 `HotkeyService::register_all()` 按桌面环境选择实现：
@@ -112,6 +114,14 @@ API Key 的存储策略（`native/src/config/secret.rs`）：
 
 Flutter 侧通过 `HotkeyService` 每 200ms 轮询 `pollHotkeyEvent()` 获取热键事件（`presentation/services/hotkey_service.dart`）。
 
+默认快捷键配置（可在设置中录制修改）：
+
+| 快捷键 | 功能 |
+|--------|------|
+| `Super+Alt+F` | 翻译剪贴板内容 |
+| `Ctrl+Shift+S` | 截图 OCR → 自动翻译 |
+| `Ctrl+Shift+F` | 显示/隐藏浮动窗口 |
+
 ### OCR 截图管道
 
 `native/src/ocr/mod.rs` 的 `OcrService`：
@@ -119,9 +129,38 @@ Flutter 侧通过 `HotkeyService` 每 200ms 轮询 `pollHotkeyEvent()` 获取热
 1. `screenshot()` → 调用 `grim` + `slurp` 获取选区截图
 2. `recognize()` → spawn_blocking 中执行：image crate 预处理（灰度 → 对比度 → 2x 放大）→ 写临时文件 → `tesseract` CLI 识别
 
-### 状态管理
+### 核心数据库表结构
 
-Flutter 侧使用 Riverpod，但许多 Provider 仍是 TODO 骨架。实际业务逻辑主要在 `presentation/services/` 下的 Service 类（单例模式，如 `HotkeyService`、`TranslationService`），通过 `ffi_datasource.dart` 调用 Rust。
+SQLite 数据库由 `native/src/config/storage.rs` 初始化，主要表：
+
+| 表名 | 关键字段 | 说明 |
+|------|---------|------|
+| `providers` | id, name, api_url, model, auth_type, is_active, sort_order, system_prompt | 厂商配置（api_key 分离存储） |
+| `provider_keys` | provider_id, encrypted_key | API Key 主存储（当 keyring 不可用时） |
+| `prompt_templates` | id, name, content, is_active | 提示词模板 |
+| `shortcut_bindings` | id, action, key_combination, enabled | 快捷键绑定 |
+| `active_sessions` | id=1, last_provider_id, last_compare_providers | 上一次使用的会话状态 |
+| `user_config` | id='default', theme, default_target_lang, auto_detect | 用户全局偏好 |
+
+### Provider 状态管理（SQLite 为单一数据源）
+
+厂商配置和激活状态由 Rust 侧 `ConfigManager`（`native/src/config/mod.rs`）统一管理，以 SQLite `providers` 表为唯一数据源。
+
+- **`is_active` 字段**：表示用户是否启用该厂商（需同时满足 `is_active = true` 且 `api_key` 不为空）
+- **获取 Provider 列表**：Flutter 侧通过 `ffi_datasource.getProviders()` → `ConfigManager::get_all_providers()` 读取，Rust 侧自动关联 `secret::get_api_key()` 填充 `api_key` 字段
+- **保存/更新**：`ffi_datasource.saveProvider()` → `ConfigManager::save_provider()`，API Key 分离存储到 `secret` 模块（SQLite `provider_keys` 表或 keyring），其余字段存入 `providers` 表
+- **激活状态切换**：直接修改 `providers` 表的 `is_active` 字段，Flutter 侧通过重新获取列表刷新状态
+
+Flutter 侧业务逻辑主要在 `presentation/services/` 下的 Service 类（`HotkeyService`、`TranslationService` 等），通过 `ffi_datasource.dart` 调用 Rust，Riverpod Provider 多为状态持有者而非业务逻辑主体。
+
+### 提示词模板系统
+
+`native/src/config/mod.rs` 提供完整的提示词模板 CRUD：`get_all_prompt_templates()` / `save_prompt_template()` / `delete_prompt_template()` / `get_active_prompt()`。
+
+- 数据库表：`prompt_templates`（id, name, content, is_active, created_at）
+- 激活机制：设置模板为 `is_active = 1` 时，Rust 侧自动将该模板内容覆盖所有厂商翻译请求的 system prompt；未激活时使用厂商默认提示词
+- 同时只能有一个模板处于激活状态（`save_prompt_template` 会自动重置其他模板的 `is_active`）
+- FFI 接口：`getPromptTemplates()` / `savePromptTemplate()` / `deletePromptTemplate()` / `getActivePrompt()`
 
 ### 路由
 
