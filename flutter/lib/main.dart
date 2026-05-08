@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart' show ExternalLibrary;
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:flutter_translate/src/rust/frb_generated.dart';
@@ -11,7 +13,13 @@ import 'app/app.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await RustLib.init();
+  await RustLib.init(
+    externalLibrary: Platform.isMacOS
+        ? ExternalLibrary.open(
+            '${File(Platform.resolvedExecutable).parent.path}/libflutter_translate_native.dylib',
+          )
+        : null,
+  );
 
   try {
     await bridge.initServices();

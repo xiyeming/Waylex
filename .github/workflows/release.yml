@@ -190,6 +190,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.41.x'
+
       - name: Install Rust toolchain with targets
         uses: dtolnay/rust-toolchain@stable
         with:
@@ -203,6 +209,16 @@ jobs:
             ~/.cargo/git
             native/target
           key: ${{ runner.os }}-cargo-${{ hashFiles('native/Cargo.lock') }}
+
+      - name: Enable macOS desktop
+        working-directory: flutter
+        run: |
+          flutter config --enable-macos-desktop
+          flutter create --platforms=macos .
+
+      - name: Get Flutter dependencies
+        working-directory: flutter
+        run: flutter pub get
 
       - name: Build x86_64
         working-directory: native
@@ -238,18 +254,40 @@ jobs:
             -output target/universal/release/libflutter_translate_native.dylib
           lipo -info target/universal/release/libflutter_translate_native.dylib
 
-      - name: Package macOS dylib
-        working-directory: native
+      - name: Generate FFI bindings
+        working-directory: flutter
         run: |
-          mkdir -p waylex-macos-universal
-          cp target/universal/release/libflutter_translate_native.dylib waylex-macos-universal/
-          tar czf waylex-macos-universal.tar.gz waylex-macos-universal/
+          cargo install flutter_rust_bridge_codegen
+          flutter_rust_bridge_codegen generate
+
+      - name: Build Flutter macOS
+        working-directory: flutter
+        run: flutter build macos --release --verbose
+
+      - name: Copy dylib into app bundle
+        run: |
+          APP_BUNDLE=$(find flutter/build/macos/Build/Products/Release -name "*.app" -type d | head -1)
+          echo "App bundle: $APP_BUNDLE"
+          if [ -z "$APP_BUNDLE" ]; then echo "No .app bundle found"; exit 1; fi
+          mkdir -p "$APP_BUNDLE/Contents/MacOS"
+          cp native/target/universal/release/libflutter_translate_native.dylib "$APP_BUNDLE/Contents/MacOS/"
+          codesign --force --sign - "$APP_BUNDLE/Contents/MacOS/libflutter_translate_native.dylib"
+          codesign --force --deep --sign - "$APP_BUNDLE"
+
+      - name: Package macOS app
+        run: |
+          APP_BUNDLE=$(find flutter/build/macos/Build/Products/Release -name "*.app" -type d | head -1)
+          APP_NAME=$(basename "$APP_BUNDLE" .app)
+          mkdir -p waylex-macos
+          cp -R "$APP_BUNDLE" waylex-macos/
+          cd waylex-macos
+          zip -ry ../waylex-macos-universal.zip "$APP_NAME.app"
 
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
         with:
           name: macos-artifacts
-          path: native/waylex-macos-universal.tar.gz
+          path: waylex-macos-universal.zip
 
   build-windows:
     runs-on: windows-latest
