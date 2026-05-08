@@ -24,10 +24,18 @@ mkdir -p "$APPDIR/usr/share/applications"
 
 echo "Building Flutter Linux app ($FLUTTER_BUILD_ARCH)..."
 cd "$PROJECT_DIR/flutter"
-flutter build linux --release
+flutter build linux --release || {
+    echo "ERROR: flutter build linux failed"
+    exit 1
+}
+
+BUNDLE_DIR="$PROJECT_DIR/flutter/build/linux/$FLUTTER_BUILD_ARCH/release/bundle"
+echo "Bundle dir: $BUNDLE_DIR"
+ls -la "$BUNDLE_DIR/" || true
+ls -la "$BUNDLE_DIR/lib/" || true
 
 echo "Copying binaries..."
-cp -r "$PROJECT_DIR/flutter/build/linux/$FLUTTER_BUILD_ARCH/release/bundle/"* "$APPDIR/usr/bin/"
+cp -r "$BUNDLE_DIR/"* "$APPDIR/usr/bin/"
 
 echo "Creating desktop entry..."
 cat > "$APPDIR/usr/share/applications/$APP_NAME.desktop" << EOF

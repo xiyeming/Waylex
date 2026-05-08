@@ -4,11 +4,17 @@ use crate::ffi::error::{ClipboardError, HotkeyError, OcrError, TrayError};
 use crate::platform::PlatformBackend;
 use std::sync::{Arc, Mutex};
 
+/// Wrapper to make TrayIcon Send-safe for cross-thread storage.
+/// TrayIcon uses Rc<RefCell<...>> internally which is !Send, but on macOS
+/// the backend is effectively single-threaded at runtime.
+struct SendTrayIcon(tray_icon::TrayIcon);
+unsafe impl Send for SendTrayIcon {}
+
 pub struct MacOsBackend {
     hotkey_manager: Arc<Mutex<global_hotkey::GlobalHotKeyManager>>,
     clipboard: Arc<Mutex<arboard::Clipboard>>,
-    tray_icon: Arc<Mutex<Option<tray_icon::TrayIcon>>>,
-    registered_hotkeys: Arc<Mutex<Vec<(u32, String)>>>,
+    tray_icon: Arc<Mutex<Option<SendTrayIcon>>>,
+    registered_hotkeys: Arc<Mutex<Vec<(global_hotkey::HotKey, String)>>>,
 }
 
 impl MacOsBackend {
@@ -125,8 +131,8 @@ impl PlatformBackend for MacOsBackend {
             if !binding.enabled { continue; }
             match Self::parse_hotkey(&binding.key_combination) {
                 Ok(hotkey) => {
-                    if let Ok(id) = manager.register(hotkey) {
-                        registered.push((id.0, binding.action));
+                    if manager.register(hotkey).is_ok() {
+                        registered.push((hotkey, binding.action));
                     }
                 }
                 Err(e) => {
@@ -142,8 +148,8 @@ impl PlatformBackend for MacOsBackend {
     fn unregister_hotkeys(&self) -> Result<(), HotkeyError> {
         let manager = self.hotkey_manager.lock().unwrap();
         let registered = self.registered_hotkeys.lock().unwrap();
-        for (id, _) in registered.iter() {
-            let _ = manager.unregister(global_hotkey::HotKeyId(*id));
+        for (hotkey, _) in registered.iter() {
+            let _ = manager.unregister(*hotkey);
         }
         drop(registered);
         self.registered_hotkeys.lock().unwrap().clear();
@@ -153,8 +159,8 @@ impl PlatformBackend for MacOsBackend {
     fn poll_hotkey_event(&self) -> Option<String> {
         if let Ok(event) = global_hotkey::GlobalHotKeyEvent::receiver().try_recv() {
             let registered = self.registered_hotkeys.lock().unwrap();
-            for (id, action) in registered.iter() {
-                if event.id == global_hotkey::HotKeyId(*id) {
+            for (hotkey, action) in registered.iter() {
+                if event.id == hotkey.id {
                     return Some(action.clone());
                 }
             }
@@ -212,7 +218,7 @@ impl PlatformBackend for MacOsBackend {
             .build()
             .map_err(|e| TrayError::MenuError(e.to_string()))?;
 
-        *tray = Some(tray_icon);
+        *tray = Some(SendTrayIcon(tray_icon));
         tracing::info!("macOS tray initialized");
         Ok(())
     }

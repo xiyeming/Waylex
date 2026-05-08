@@ -54,7 +54,9 @@ jobs:
 
       - name: Build Rust library
         working-directory: native
-        run: cargo build --release 2>&1 | tail -100
+        run: |
+          set -o pipefail
+          cargo build --release 2>&1 | tail -100
 
       - name: Generate FFI bindings
         working-directory: flutter
@@ -132,7 +134,9 @@ jobs:
 
       - name: Build Rust library
         working-directory: native
-        run: cargo build --release 2>&1 | tail -100
+        run: |
+          set -o pipefail
+          cargo build --release 2>&1 | tail -100
 
       - name: Generate FFI bindings
         working-directory: flutter
@@ -276,8 +280,7 @@ jobs:
         working-directory: native
         env:
           RUST_BACKTRACE: 1
-        run: cargo build --release 2>&1 | Select-Object -Last 100
-        continue-on-error: true
+        run: cargo build --release
 
       - name: Generate FFI bindings
         working-directory: flutter
@@ -291,6 +294,7 @@ jobs:
 
       - name: Copy native library to bundle
         run: |
+          Get-ChildItem -Path "native\target\release\*.dll" | Select-Object -ExpandProperty FullName
           Copy-Item -Path "native\target\release\flutter_translate_native.dll" -Destination "flutter\build\windows\x64\release\runner\Release\" -Force
 
       - name: Package Windows zip
