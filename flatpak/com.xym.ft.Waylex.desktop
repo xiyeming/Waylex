@@ -3,6 +3,7 @@ Name=Waylex
 Comment=AI Translation Desktop Tool
 Exec=Waylex
 Icon=com.xym.ft.Waylex
+StartupWMClass=com.xym.ft.Waylex
 Type=Application
 Categories=Utility;Translation;Office;
 StartupNotify=true

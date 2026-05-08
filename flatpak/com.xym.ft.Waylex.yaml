@@ -10,11 +10,15 @@ finish-args:
   - --socket=fallback-x11
   - --socket=wayland
   - --device=dri
+  - --device=all
   - --socket=pulseaudio
   - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=org.kde.KGlobalAccel
+  - --talk-name=org.kde.kglobalaccel
   - --talk-name=org.freedesktop.secrets
   - --filesystem=xdg-config
   - --filesystem=xdg-download
+  - --filesystem=xdg-run/hypr
 
 modules:
   - name: waylex
@@ -37,7 +41,6 @@ modules:
       - type: file
         path: com.xym.ft.Waylex.desktop
       - type: file
-        path: ../flutter/assets/icons/tray_icon.png
-        dest-filename: com.xym.ft.Waylex.png
+        path: com.xym.ft.Waylex.png
       - type: file
         path: com.xym.ft.Waylex.metainfo.xml
