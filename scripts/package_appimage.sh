@@ -50,6 +50,9 @@ StartupNotify=true
 Terminal=false
 EOF
 
+# appimagetool also requires desktop file at AppDir root
+cp "$APPDIR/usr/share/applications/$APP_NAME.desktop" "$APPDIR/$APP_NAME.desktop"
+
 echo "Creating AppRun..."
 cat > "$APPDIR/AppRun" << 'EOF'
 #!/bin/bash

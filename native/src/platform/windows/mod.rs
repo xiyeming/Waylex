@@ -4,16 +4,25 @@ use crate::ffi::error::{ClipboardError, HotkeyError, OcrError, TrayError};
 use crate::platform::PlatformBackend;
 use std::sync::{Arc, Mutex};
 
-/// Wrapper to make TrayIcon Send-safe for cross-thread storage.
-/// TrayIcon uses Rc<RefCell<...>> internally which is !Send, but on Windows
-/// the backend is effectively single-threaded at runtime.
-struct SendTrayIcon(tray_icon::TrayIcon);
-unsafe impl Send for SendTrayIcon {}
+/// Wrapper to make types Send+Sync-safe for cross-thread storage.
+/// These types use raw pointers or Rc<RefCell<...>> internally which are
+/// !Send/!Sync, but the underlying OS APIs are thread-safe.
+struct SendSyncHotkeyManager(global_hotkey::GlobalHotKeyManager);
+unsafe impl Send for SendSyncHotkeyManager {}
+unsafe impl Sync for SendSyncHotkeyManager {}
+
+struct SendSyncClipboard(arboard::Clipboard);
+unsafe impl Send for SendSyncClipboard {}
+unsafe impl Sync for SendSyncClipboard {}
+
+struct SendSyncTrayIcon(tray_icon::TrayIcon);
+unsafe impl Send for SendSyncTrayIcon {}
+unsafe impl Sync for SendSyncTrayIcon {}
 
 pub struct WindowsBackend {
-    hotkey_manager: Arc<Mutex<global_hotkey::GlobalHotKeyManager>>,
-    clipboard: Arc<Mutex<arboard::Clipboard>>,
-    tray_icon: Arc<Mutex<Option<SendTrayIcon>>>,
+    hotkey_manager: Arc<Mutex<SendSyncHotkeyManager>>,
+    clipboard: Arc<Mutex<SendSyncClipboard>>,
+    tray_icon: Arc<Mutex<Option<SendSyncTrayIcon>>>,
     registered_hotkeys: Arc<Mutex<Vec<(global_hotkey::HotKey, String)>>>,
 }
 
@@ -25,8 +34,8 @@ impl WindowsBackend {
             .expect("Failed to create clipboard");
 
         Self {
-            hotkey_manager: Arc::new(Mutex::new(hotkey_manager)),
-            clipboard: Arc::new(Mutex::new(clipboard)),
+            hotkey_manager: Arc::new(Mutex::new(SendSyncHotkeyManager(hotkey_manager))),
+            clipboard: Arc::new(Mutex::new(SendSyncClipboard(clipboard))),
             tray_icon: Arc::new(Mutex::new(None)),
             registered_hotkeys: Arc::new(Mutex::new(Vec::new())),
         }
@@ -135,7 +144,7 @@ impl PlatformBackend for WindowsBackend {
             if !binding.enabled { continue; }
             match Self::parse_hotkey(&binding.key_combination) {
                 Ok(hotkey) => {
-                    if manager.register(hotkey).is_ok() {
+                    if manager.0.register(hotkey).is_ok() {
                         registered.push((hotkey, binding.action));
                     }
                 }
@@ -153,7 +162,7 @@ impl PlatformBackend for WindowsBackend {
         let manager = self.hotkey_manager.lock().unwrap();
         let registered = self.registered_hotkeys.lock().unwrap();
         for (hotkey, _) in registered.iter() {
-            let _ = manager.unregister(*hotkey);
+            let _ = manager.0.unregister(*hotkey);
         }
         drop(registered);
         self.registered_hotkeys.lock().unwrap().clear();
@@ -174,13 +183,13 @@ impl PlatformBackend for WindowsBackend {
 
     fn get_clipboard_text(&self) -> Result<String, ClipboardError> {
         let mut clipboard = self.clipboard.lock().unwrap();
-        clipboard.get_text()
+        clipboard.0.get_text()
             .map_err(|e| ClipboardError::WlError(e.to_string()))
     }
 
     fn set_clipboard_text(&self, text: String) -> Result<(), ClipboardError> {
         let mut clipboard = self.clipboard.lock().unwrap();
-        clipboard.set_text(text)
+        clipboard.0.set_text(text)
             .map_err(|e| ClipboardError::WlError(e.to_string()))
     }
 
@@ -217,7 +226,7 @@ impl PlatformBackend for WindowsBackend {
             .build()
             .map_err(|e| TrayError::MenuError(e.to_string()))?;
 
-        *tray = Some(SendTrayIcon(tray_icon));
+        *tray = Some(SendSyncTrayIcon(tray_icon));
         tracing::info!("Windows tray initialized");
         Ok(())
     }
