@@ -67,7 +67,10 @@ cd "$BUILD_DIR"
 APPIMAGETOOL="appimagetool-${ARCH}.AppImage"
 if [ ! -f "$APPIMAGETOOL" ]; then
     echo "Downloading appimagetool for $ARCH..."
-    wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/${APPIMAGETOOL}" -O "$APPIMAGETOOL"
+    if ! wget -q "https://github.com/AppImage/AppImageKit/releases/download/continuous/${APPIMAGETOOL}" -O "$APPIMAGETOOL"; then
+        echo "Warning: Failed to download appimagetool for $ARCH. Skipping AppImage."
+        exit 0
+    fi
     chmod +x "$APPIMAGETOOL"
 fi
 
