@@ -39,29 +39,66 @@
 
 ## 安装
 
+从 [Releases](https://github.com/xiyeming/Waylex/releases) 下载对应系统的安装包。
+
+| 文件 | 系统/架构 | 格式 |
+|------|----------|------|
+| `Waylex-linux-x86_64.AppImage` | Linux x86_64 | AppImage（推荐） |
+| `Waylex-linux-aarch64.AppImage` | Linux ARM64 | AppImage |
+| `waylex-linux-x64.tar.gz` | Linux x86_64 | 便携压缩包 |
+| `waylex-linux-aarch64.tar.gz` | Linux ARM64 | 便携压缩包 |
+| `Waylex.flatpak` | Linux x86_64 | Flatpak |
+| `waylex-macos-universal.zip` | macOS (Intel/Apple Silicon) | 应用包 |
+| `waylex-windows-x64.zip` | Windows x64 | 便携压缩包 |
+
+---
+
 ### Linux
 
-#### AppImage（推荐）
-
-从 [Releases](https://github.com/xiyeming/flutter-translate/releases) 下载最新 `Waylex-*.AppImage`：
+#### AppImage（推荐，无需 root）
 
 ```bash
-chmod +x Waylex-*.AppImage
-./Waylex-*.AppImage
+# x86_64
+chmod +x Waylex-linux-x86_64.AppImage
+./Waylex-linux-x86_64.AppImage
+
+# ARM64 (aarch64，如树莓派、Asahi Linux)
+chmod +x Waylex-linux-aarch64.AppImage
+./Waylex-linux-aarch64.AppImage
 ```
 
-系统依赖（目标机器需预装）：
+> 首次运行若提示 FUSE 缺失，可使用 `--appimage-extract` 解压后运行 `squashfs-root/AppRun`。
 
-| 包 | 用途 |
-|----|------|
-| `wl-clipboard` | Wayland 剪贴板 |
-| `grim` `slurp` | 截图 + 选区 |
-| `tesseract` `tesseract-data-eng` `tesseract-data-chi_sim` | OCR 引擎 + 中英文语言包 |
+#### Flatpak
 
 ```bash
-# Arch
-sudo pacman -S wl-clipboard grim slurp tesseract tesseract-data-eng tesseract-data-chi_sim
+flatpak install Waylex.flatpak
+flatpak run com.xym.ft.Waylex
+```
 
+#### 便携压缩包
+
+```bash
+# x86_64
+tar xzf waylex-linux-x64.tar.gz
+cd bundle && ./Waylex
+
+# ARM64
+tar xzf waylex-linux-aarch64.tar.gz
+cd bundle && ./Waylex
+```
+
+#### 系统依赖
+
+Linux 端以下功能依赖外部命令，目标机器需预装：
+
+| 包 | 用途 | 安装命令 (Arch) |
+|----|------|----------------|
+| `wl-clipboard` | Wayland 剪贴板读写 | `sudo pacman -S wl-clipboard` |
+| `grim` + `slurp` | 截图 + 交互式选区 | `sudo pacman -S grim slurp` |
+| `tesseract` + `tesseract-data-eng` + `tesseract-data-chi_sim` | OCR 引擎 + 中英文语言包 | `sudo pacman -S tesseract tesseract-data-eng tesseract-data-chi_sim` |
+
+```bash
 # Ubuntu/Debian
 sudo apt install wl-clipboard grim slurp tesseract-ocr tesseract-ocr-eng tesseract-ocr-chi-sim
 
@@ -71,52 +108,61 @@ sudo dnf install wl-clipboard grim slurp tesseract tesseract-langpack-eng tesser
 
 #### 全局快捷键权限
 
-Hyprland / Sway 上 evdev 快捷键需要 `input` 组权限：
-
-```bash
-sudo usermod -aG input $USER
-# 重新登录生效
-groups $USER | grep input
-```
+- **Hyprland / Sway**：evdev 热键需要 `input` 组权限。AppImage/便携包需要此权限，Flatpak 使用 Hyprland IPC  fallback 可不依赖。
+  ```bash
+  sudo usermod -aG input $USER
+  # 重新登录生效
+  ```
+- **KDE Plasma**：通过 KGlobalAccel D-Bus 注册，无需额外权限。
 
 #### Hyprland 窗口规则
 
-将以下内容添加到 `~/.config/hypr/hyprland.conf`（或放在单独文件用 `source` 引入）：
+将以下内容添加到 `~/.config/hypr/hyprland.conf`：
 
 ```hypr
-# Waylex 浮动窗口规则 (Hyprland 0.54+)
 windowrule {
-    name = xym-ft-float
     match:class = ^(com.xym.ft)$
     float = true
     size = 400 600
     center = true
     pin = true
-    animation = popin 80%
 }
 ```
 
-> 项目内 `hyprland/flutter-translate.conf` 即为可用的独立配置文件
+> 项目内 `hyprland/flutter-translate.conf` 为独立配置文件，可用 `source = ~/CodeSpaces/RustProjects/Waylex/hyprland/flutter-translate.conf` 引入。
+
+---
 
 ### Windows
 
-从 [Releases](https://github.com/xiyeming/flutter-translate/releases) 下载 Windows 安装包，或参考 [docs/windows-build.md](docs/windows-build.md) 从源码构建。
+下载 `waylex-windows-x64.zip`，解压后运行 `Waylex.exe`。
 
-构建前需准备：
-- Visual Studio Build Tools（MSVC v143 + Windows SDK）
-- Tesseract OCR（需添加到 PATH）
-- Flutter Windows 桌面支持：`flutter config --enable-windows-desktop`
+#### 系统依赖
+
+| 依赖 | 说明 |
+|------|------|
+| Tesseract OCR | 需添加到 PATH，或放在应用同目录 |
+| Visual C++ Redistributable | 若启动失败，安装最新 VC++ 运行时 |
+
+首次运行需授予**屏幕录制**权限（截图 OCR 功能需要）。
+
+---
 
 ### macOS
 
-从 [Releases](https://github.com/xiyeming/flutter-translate/releases) 下载 macOS 应用包（支持 Intel 和 Apple Silicon Universal Binary），或参考 [docs/macos-build.md](docs/macos-build.md) 从源码构建。
+下载 `waylex-macos-universal.zip`，解压后将 `Waylex.app` 拖入 **应用程序** 文件夹。
 
-构建前需准备：
-- Xcode Command Line Tools
-- Tesseract OCR：`brew install tesseract tesseract-lang`
-- Flutter macOS 桌面支持：`flutter config --enable-macos-desktop`
+#### 系统依赖
 
-首次运行需授予**屏幕录制**和**辅助功能**权限。
+```bash
+brew install tesseract tesseract-lang
+```
+
+首次运行需授予：
+- **辅助功能**权限（全局热键）
+- **屏幕录制**权限（截图 OCR）
+
+---
 
 ### 从源码构建
 

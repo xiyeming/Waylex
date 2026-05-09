@@ -112,6 +112,7 @@ jobs:
           name: linux-x64-artifacts
           path: |
             build/*.AppImage
+            !build/appimagetool-*.AppImage
             flutter/build/linux/x64/release/waylex-linux-x64.tar.gz
 
       - name: Upload bundle for Flatpak
@@ -208,6 +209,7 @@ jobs:
           name: linux-aarch64-artifacts
           path: |
             build/*.AppImage
+            !build/appimagetool-*.AppImage
             flutter/build/linux/arm64/release/waylex-linux-aarch64.tar.gz
 
   build-macos:
