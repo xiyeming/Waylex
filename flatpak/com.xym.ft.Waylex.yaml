@@ -43,6 +43,12 @@ modules:
             exit 1
           fi
         done
+      - |
+        # tray_manager expects relative path assets/icons/tray_icon.png from binary dir
+        if [ -f "data/flutter_assets/assets/icons/tray_icon.png" ]; then
+          mkdir -p /app/bin/assets/icons
+          cp data/flutter_assets/assets/icons/tray_icon.png /app/bin/assets/icons/tray_icon.png
+        fi
       - install -Dm644 com.xym.ft.Waylex.png /app/share/icons/hicolor/256x256/apps/com.xym.ft.Waylex.png
       - install -Dm644 com.xym.ft.Waylex.desktop /app/share/applications/com.xym.ft.Waylex.desktop
       - install -Dm644 com.xym.ft.Waylex.metainfo.xml /app/share/metainfo/com.xym.ft.Waylex.metainfo.xml
