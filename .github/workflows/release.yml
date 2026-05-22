@@ -25,7 +25,7 @@ jobs:
   build-linux:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -67,7 +67,7 @@ jobs:
 
       - name: Upload build log on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-build-log
           path: native/build.log
@@ -126,7 +126,8 @@ jobs:
           cp -a "$BUNDLE_DIR/." "$PKGROOT/opt/waylex/"
           install -Dm755 /dev/stdin "$PKGROOT/usr/bin/waylex" <<'EOF'
           #!/bin/sh
-          exec /opt/waylex/run.sh "$@"
+          export LD_LIBRARY_PATH="/opt/waylex/lib:${LD_LIBRARY_PATH:-}"
+          exec /opt/waylex/Waylex "$@"
           EOF
 
           cat > "$PKGROOT/usr/share/applications/waylex.desktop" <<'EOF'
@@ -180,7 +181,7 @@ jobs:
           mv build/flutter-translate-x86_64.AppImage build/Waylex-linux-x86_64.AppImage || true
 
       - name: Upload Linux x86_64 artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-x64-artifacts
           path: |
@@ -190,7 +191,7 @@ jobs:
             flutter/build/linux/x64/release/*.pkg.tar.zst
 
       - name: Upload bundle for Flatpak
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-bundle-flatpak
           path: flutter/build/linux/x64/release/bundle/
@@ -198,7 +199,7 @@ jobs:
   build-linux-aarch64:
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Flutter (ARM64 via git)
         run: |
@@ -240,7 +241,7 @@ jobs:
 
       - name: Upload build log on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-build-log
           path: native/build.log
@@ -298,7 +299,8 @@ jobs:
           cp -a "$BUNDLE_DIR/." "$PKGROOT/opt/waylex/"
           install -Dm755 /dev/stdin "$PKGROOT/usr/bin/waylex" <<'EOF'
           #!/bin/sh
-          exec /opt/waylex/run.sh "$@"
+          export LD_LIBRARY_PATH="/opt/waylex/lib:${LD_LIBRARY_PATH:-}"
+          exec /opt/waylex/Waylex "$@"
           EOF
 
           cat > "$PKGROOT/usr/share/applications/waylex.desktop" <<'EOF'
@@ -351,7 +353,7 @@ jobs:
           mv build/Waylex-aarch64.AppImage build/Waylex-linux-aarch64.AppImage || true
 
       - name: Upload Linux aarch64 artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: linux-aarch64-artifacts
           path: |
@@ -363,7 +365,7 @@ jobs:
   build-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Flutter
         uses: subosito/flutter-action@v2
@@ -377,7 +379,7 @@ jobs:
           targets: x86_64-apple-darwin,aarch64-apple-darwin
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -416,7 +418,7 @@ jobs:
 
       - name: Upload macOS build logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: macos-build-logs
           path: native/build-*.log
@@ -470,7 +472,7 @@ jobs:
           zip -ry ../waylex-macos-universal.zip "$APP_NAME.app"
 
       - name: Upload macOS artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: macos-artifacts
           path: waylex-macos-universal.zip
@@ -478,7 +480,7 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Setup MSVC
         uses: ilammy/msvc-dev-cmd@v1
@@ -505,7 +507,7 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
 
       - name: Cache cargo registry
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/registry
@@ -531,7 +533,7 @@ jobs:
 
       - name: Upload Windows build log on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-build-log
           path: native/build.log
@@ -575,7 +577,7 @@ jobs:
           Compress-Archive -Path (Split-Path -Leaf $releaseDir) -DestinationPath "waylex-windows-x64.zip"
 
       - name: Upload Windows artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: windows-artifacts
           path: flutter/build/windows/**/waylex-windows-x64.zip
@@ -584,10 +586,10 @@ jobs:
     needs: [build-linux]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download Linux bundle
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: linux-bundle-flatpak
           path: bundle/
@@ -619,7 +621,7 @@ jobs:
           flatpak build-bundle ../repo ../Waylex.flatpak com.xym.ft.Waylex --runtime-repo=https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Upload Flatpak artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: flatpak-artifact
           path: Waylex.flatpak
@@ -629,31 +631,31 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download Linux x86_64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: linux-x64-artifacts
           path: artifacts/
 
       - name: Download Linux aarch64 artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: linux-aarch64-artifacts
           path: artifacts/
 
       - name: Download macOS artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: macos-artifacts
           path: artifacts/
 
       - name: Download Windows artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: windows-artifacts
           path: artifacts/
 
       - name: Download Flatpak artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v7
         with:
           name: flatpak-artifact
           path: artifacts/

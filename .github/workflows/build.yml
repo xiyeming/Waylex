@@ -13,13 +13,13 @@ jobs:
     linux-native:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - name: Install Rust toolchain
               uses: dtolnay/rust-toolchain@stable
 
             - name: Cache cargo registry
-              uses: actions/cache@v4
+              uses: actions/cache@v5
               with:
                   path: |
                       ~/.cargo/registry
@@ -62,7 +62,7 @@ jobs:
         container:
             image: ${{ matrix.image }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - name: Install dependencies
               run: ${{ matrix.install }}
@@ -83,7 +83,7 @@ jobs:
     cross-compile-check:
         runs-on: ubuntu-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - name: Install Rust toolchain with targets
               uses: dtolnay/rust-toolchain@stable
@@ -91,7 +91,7 @@ jobs:
                   targets: x86_64-pc-windows-msvc, x86_64-apple-darwin, aarch64-apple-darwin
 
             - name: Cache cargo registry
-              uses: actions/cache@v4
+              uses: actions/cache@v5
               with:
                   path: |
                       ~/.cargo/registry
@@ -115,7 +115,7 @@ jobs:
         runs-on: ubuntu-latest
         needs: [linux-native]
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - name: Install Flutter
               uses: subosito/flutter-action@v2
@@ -166,7 +166,7 @@ jobs:
 
             - name: Upload Flutter build artifact
               if: ${{ success() || failure() }}
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v6
               with:
                   name: waylex-linux-x64
                   path: flutter/build/linux/x64/release/bundle/
@@ -179,7 +179,7 @@ jobs:
               continue-on-error: true
 
             - name: Upload AppImage artifact
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v6
               with:
                   name: waylex-appimage
                   path: build/*.AppImage
@@ -188,7 +188,7 @@ jobs:
     macos-universal-binary:
         runs-on: macos-latest
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
 
             - name: Install Rust toolchain with targets
               uses: dtolnay/rust-toolchain@stable
@@ -196,7 +196,7 @@ jobs:
                   targets: x86_64-apple-darwin,aarch64-apple-darwin
 
             - name: Cache cargo registry
-              uses: actions/cache@v4
+              uses: actions/cache@v5
               with:
                   path: |
                       ~/.cargo/registry
@@ -241,7 +241,7 @@ jobs:
 
             - name: Upload macOS universal binary
               if: ${{ success() || failure() }}
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v6
               with:
                   name: waylex-macos-universal-dylib
                   path: native/target/universal/release/libflutter_translate_native.dylib
