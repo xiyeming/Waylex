@@ -1,7 +1,8 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart' show ExternalLibrary;
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart'
+    show ExternalLibrary;
 import 'package:window_manager/window_manager.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:flutter_translate/src/rust/frb_generated.dart';
@@ -31,7 +32,7 @@ void main() async {
 
   // Start hotkey listener
   try {
-    HotkeyService().registerAll();
+    await HotkeyService().registerAll();
   } catch (e) {
     debugPrint('Hotkey init failed (non-fatal): $e');
   }
@@ -58,11 +59,7 @@ void main() async {
 
   await _initTray();
 
-  runApp(
-    const ProviderScope(
-      child: FlutterTranslateApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: FlutterTranslateApp()));
 }
 
 Future<void> _initTray() async {
@@ -73,14 +70,16 @@ Future<void> _initTray() async {
           : 'assets/icons/tray_icon.png',
     );
 
-    final menu = Menu(items: [
-      MenuItem(key: 'show', label: '显示窗口'),
-      MenuItem(key: 'ocr', label: '截图翻译'),
-      MenuItem.separator(),
-      MenuItem(key: 'settings', label: '设置'),
-      MenuItem.separator(),
-      MenuItem(key: 'quit', label: '退出'),
-    ]);
+    final menu = Menu(
+      items: [
+        MenuItem(key: 'show', label: '显示窗口'),
+        MenuItem(key: 'ocr', label: '截图翻译'),
+        MenuItem.separator(),
+        MenuItem(key: 'settings', label: '设置'),
+        MenuItem.separator(),
+        MenuItem(key: 'quit', label: '退出'),
+      ],
+    );
 
     await trayManager.setContextMenu(menu);
   } catch (e) {
@@ -145,17 +144,21 @@ class _TrayAppState extends ConsumerState<TrayApp> with TrayListener {
       case 'show':
         await windowManager.show();
         await windowManager.focus();
+        return;
       case 'ocr':
         await windowManager.show();
         await windowManager.focus();
         HotkeyService().simulateEvent('ocr_screenshot');
+        return;
       case 'settings':
         await windowManager.show();
         await windowManager.focus();
         appRouter.go('/settings');
+        return;
       case 'quit':
         await windowManager.setPreventClose(false);
         await windowManager.close();
+        return;
     }
   }
 

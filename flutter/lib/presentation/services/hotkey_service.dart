@@ -21,27 +21,59 @@ class HotkeyService {
   DateTime? _lastWatchdogTick;
   final _ffi = FfiDatasource();
 
+  String _describeBindings(List<ShortcutBinding> bindings) {
+    if (bindings.isEmpty) return 'none';
+    return bindings
+        .map(
+          (b) =>
+              '${b.action}=${b.keyCombination}${b.enabled ? '' : '(disabled)'}',
+        )
+        .join(', ');
+  }
+
   Future<void> registerAll() async {
     try {
       final bindings = await _ffi.getShortcuts();
-      debugPrint('[hotkey] registerAll: found ${bindings.length} bindings');
+      debugPrint(
+        '[hotkey] registerAll: found ${bindings.length} bindings: ${_describeBindings(bindings)}',
+      );
       if (bindings.isEmpty) {
         // Insert default shortcuts if none exist
         final defaults = [
-          ShortcutBinding(id: 'translate_selected', action: 'translate_selected', keyCombination: 'Super+Alt+F', enabled: true),
-          ShortcutBinding(id: 'ocr_screenshot', action: 'ocr_screenshot', keyCombination: 'Ctrl+Shift+S', enabled: true),
-          ShortcutBinding(id: 'toggle_window', action: 'toggle_window', keyCombination: 'Ctrl+Shift+F', enabled: true),
+          ShortcutBinding(
+            id: 'translate_selected',
+            action: 'translate_selected',
+            keyCombination: 'Super+Alt+F',
+            enabled: true,
+          ),
+          ShortcutBinding(
+            id: 'ocr_screenshot',
+            action: 'ocr_screenshot',
+            keyCombination: 'Ctrl+Shift+S',
+            enabled: true,
+          ),
+          ShortcutBinding(
+            id: 'toggle_window',
+            action: 'toggle_window',
+            keyCombination: 'Ctrl+Shift+F',
+            enabled: true,
+          ),
         ];
         for (final b in defaults) {
           await _ffi.updateShortcut(b);
         }
-        debugPrint('[hotkey] registering ${defaults.length} default shortcuts');
+        debugPrint(
+          '[hotkey] registering ${defaults.length} default shortcuts: ${_describeBindings(defaults)}',
+        );
         await _ffi.registerHotkeys(defaults);
       } else {
-        debugPrint('[hotkey] registering ${bindings.length} saved shortcuts');
+        debugPrint(
+          '[hotkey] registering ${bindings.length} saved shortcuts: ${_describeBindings(bindings)}',
+        );
         await _ffi.registerHotkeys(bindings);
       }
 
+      debugPrint('[hotkey] registerAll succeeded, starting poll/watchdog');
       _startPolling();
     } catch (e) {
       debugPrint('[hotkey] registerAll failed: $e');
@@ -58,8 +90,11 @@ class HotkeyService {
         await _ffi.updateShortcut(b);
       }
       final enabled = bindings.where((b) => b.enabled).toList();
-      debugPrint('[hotkey] registering ${enabled.length} enabled shortcuts');
+      debugPrint(
+        '[hotkey] registering ${enabled.length} enabled shortcuts: ${_describeBindings(enabled)}',
+      );
       await _ffi.registerHotkeys(enabled);
+      debugPrint('[hotkey] re-register succeeded after settings update');
       _startPolling();
     } catch (e) {
       debugPrint('[hotkey] updateAndReregister failed: $e');
@@ -95,7 +130,9 @@ class HotkeyService {
       final diff = now.difference(last);
       // 如果两次 watchdog 间隔超过 3 分钟，说明系统可能从睡眠/锁屏中恢复
       if (diff.inMinutes > 3) {
-        debugPrint('[hotkey] System resumed from sleep/lock (gap ${diff.inMinutes}m), re-registering hotkeys');
+        debugPrint(
+          '[hotkey] System resumed from sleep/lock (gap ${diff.inMinutes}m), re-registering hotkeys',
+        );
         await _reRegister();
       }
     });
@@ -108,13 +145,16 @@ class HotkeyService {
       if (enabled.isEmpty) return;
       await _ffi.unregisterHotkeys();
       await _ffi.registerHotkeys(enabled);
-      debugPrint('[hotkey] Re-registered ${enabled.length} hotkeys after resume');
+      debugPrint(
+        '[hotkey] Re-registered ${enabled.length} hotkeys after resume',
+      );
     } catch (e) {
       debugPrint('[hotkey] Re-register failed: $e');
     }
   }
 
   void _stopPolling() {
+    debugPrint('[hotkey] stopping poll/watchdog timers');
     _pollTimer?.cancel();
     _pollTimer = null;
     _watchdogTimer?.cancel();

@@ -103,45 +103,62 @@ impl HyprlandHotkeyService {
 
         let actions = Arc::new(action_map);
         tokio::task::spawn_blocking(move || {
-            let mut stream = match UnixStream::connect(&socket2) {
-                Ok(s) => {
-                    tracing::info!("[hyprland] Connected to socket2: {}", socket2);
-                    s
-                }
-                Err(e) => {
-                    tracing::error!("[hyprland] Cannot connect to socket2 ({}): {}", socket2, e);
-                    return;
-                }
-            };
             let mut buf = [0u8; 4096];
+            let mut reconnect_attempts = 0u32;
             while running.load(Ordering::SeqCst) {
-                match stream.read(&mut buf) {
-                    Ok(n) if n > 0 => {
-                        let msg = String::from_utf8_lossy(&buf[..n]);
-                        tracing::debug!("[hyprland] socket2 raw: {}", msg.trim());
-                        if let Some(pos) = msg.find("activekeyv2>>") {
-                            let event_str: String = msg[pos + 13..].trim().to_string();
-                            tracing::info!("[hyprland] activekeyv2 event: {}", event_str);
-                            for (bind, action) in actions.iter() {
-                                if event_str.contains(bind.as_str()) {
-                                    tracing::info!("[hyprland] Hotkey matched: {} -> {}", bind, action);
-                                    let _ = event_tx.send(action.clone());
+                match UnixStream::connect(&socket2) {
+                    Ok(mut stream) => {
+                        reconnect_attempts = 0;
+                        tracing::info!("[hyprland] Connected to socket2: {}", socket2);
+                        while running.load(Ordering::SeqCst) {
+                            match stream.read(&mut buf) {
+                                Ok(n) if n > 0 => {
+                                    let msg = String::from_utf8_lossy(&buf[..n]);
+                                    tracing::debug!("[hyprland] socket2 raw: {}", msg.trim());
+                                    if let Some(pos) = msg.find("activekeyv2>>") {
+                                        let event_str: String = msg[pos + 13..].trim().to_string();
+                                        tracing::info!("[hyprland] activekeyv2 event: {}", event_str);
+                                        for (bind, action) in actions.iter() {
+                                            if event_str.contains(bind.as_str()) {
+                                                tracing::info!("[hyprland] Hotkey matched: {} -> {}", bind, action);
+                                                let _ = event_tx.send(action.clone());
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                                Ok(0) => {
+                                    tracing::warn!("[hyprland] socket2 returned 0 bytes, reconnecting");
+                                    break;
+                                }
+                                Ok(_) => {
+                                    std::thread::sleep(std::time::Duration::from_millis(50));
+                                }
+                                Err(e) => {
+                                    tracing::warn!("[hyprland] socket2 read error: {}, reconnecting", e);
                                     break;
                                 }
                             }
                         }
                     }
-                    Ok(0) => {
-                        tracing::warn!("[hyprland] socket2 returned 0 bytes, peer closed");
-                        std::thread::sleep(std::time::Duration::from_millis(200));
-                    }
-                    Ok(_) => { std::thread::sleep(std::time::Duration::from_millis(50)); }
                     Err(e) => {
-                        tracing::warn!("[hyprland] socket2 read error: {}", e);
-                        std::thread::sleep(std::time::Duration::from_millis(200));
+                        reconnect_attempts += 1;
+                        if reconnect_attempts == 1 || reconnect_attempts.is_multiple_of(10) {
+                            tracing::warn!(
+                                "[hyprland] Cannot connect to socket2 ({}) on attempt {}: {}",
+                                socket2,
+                                reconnect_attempts,
+                                e
+                            );
+                        }
                     }
                 }
+
+                if running.load(Ordering::SeqCst) {
+                    std::thread::sleep(std::time::Duration::from_millis(500));
+                }
             }
+            tracing::info!("[hyprland] socket2 listener exited");
         });
 
         tracing::info!("Hyprland listener started ({} shortcuts)", self.binds.len());

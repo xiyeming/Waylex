@@ -27,10 +27,21 @@ impl HotkeyService {
     }
 
     pub async fn register_all(&mut self, shortcuts: Vec<ShortcutBinding>) -> Result<(), HotkeyError> {
+        let shortcut_summary = shortcuts
+            .iter()
+            .map(|s| format!("{}={}{}", s.action, s.key_combination, if s.enabled { "" } else { "(disabled)" }))
+            .collect::<Vec<_>>()
+            .join(", ");
+
         self.running.store(false, Ordering::SeqCst);
         tokio::time::sleep(tokio::time::Duration::from_millis(200)).await;
 
         let desktop_env = ConfigManager::detect_desktop_env();
+        tracing::info!(
+            "[hotkey] register_all start: desktop_env={:?}, shortcuts=[{}]",
+            desktop_env,
+            shortcut_summary
+        );
         let (tx, rx) = broadcast::channel::<String>(32);
         self.event_tx = Some(tx.clone());
         self.event_rx = Some(rx);
@@ -68,10 +79,10 @@ impl HotkeyService {
             let mut kde_service = kde::KdeHotkeyService::new();
             if kde_service.register_all(shortcuts.clone()).await.is_ok() {
                 self.registered = shortcuts;
-                tracing::info!("KDE hotkeys registered successfully");
+                tracing::info!("[hotkey] KDE hotkeys registered successfully");
                 return Ok(());
             }
-            tracing::info!("KDE hotkey failed, falling back to evdev");
+            tracing::info!("[hotkey] KDE hotkey failed, falling back to evdev");
         }
 
         // Fallback: evdev
@@ -89,11 +100,15 @@ impl HotkeyService {
         });
 
         self.registered = shortcuts;
-        tracing::info!("Evdev hotkeys registered ({} shortcuts)", self.registered.len());
+        tracing::info!("[hotkey] Evdev hotkeys registered ({} shortcuts)", self.registered.len());
         Ok(())
     }
 
     pub fn unregister_all(&mut self) -> Result<(), HotkeyError> {
+        tracing::info!(
+            "[hotkey] unregister_all called, clearing {} registered shortcuts",
+            self.registered.len()
+        );
         self.running.store(false, Ordering::SeqCst);
         self.registered.clear();
         self.event_tx = None;

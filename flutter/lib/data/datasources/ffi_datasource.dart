@@ -141,7 +141,9 @@ class FfiDatasource {
 
   Future<void> updateShortcut(ShortcutBinding binding) async {
     try {
-      await bridge.updateShortcut(binding: _mapShortcutBindingToBridge(binding));
+      await bridge.updateShortcut(
+        binding: _mapShortcutBindingToBridge(binding),
+      );
     } catch (e) {
       throw ShortcutException('更新快捷键配置失败: $e');
     }
@@ -157,9 +159,9 @@ class FfiDatasource {
     }
   }
 
-Future<void> unregisterHotkeys() async {
+  Future<void> unregisterHotkeys() async {
     try {
-      bridge.unregisterHotkeys();
+      await bridge.unregisterHotkeys();
     } catch (e) {
       throw ShortcutException('注销快捷键失败: $e');
     }
@@ -245,7 +247,7 @@ Future<void> unregisterHotkeys() async {
     try {
       return await bridge.getAppVersion();
     } catch (e) {
-      return '1.2.0';
+      return '1.2.1';
     }
   }
 
@@ -276,7 +278,9 @@ Future<void> unregisterHotkeys() async {
 
   // ========== 类型映射 ==========
 
-  TranslationResult _mapTranslationResult(bridge_types.TranslationResult result) {
+  TranslationResult _mapTranslationResult(
+    bridge_types.TranslationResult result,
+  ) {
     return TranslationResult(
       providerId: result.providerId,
       providerName: result.providerName,
@@ -306,7 +310,9 @@ Future<void> unregisterHotkeys() async {
     );
   }
 
-  bridge_types.ProviderConfig _mapProviderConfigToBridge(ProviderConfig config) {
+  bridge_types.ProviderConfig _mapProviderConfigToBridge(
+    ProviderConfig config,
+  ) {
     return bridge_types.ProviderConfig(
       id: config.id,
       name: config.name,
@@ -338,7 +344,9 @@ Future<void> unregisterHotkeys() async {
     );
   }
 
-  bridge_types.ShortcutBinding _mapShortcutBindingToBridge(ShortcutBinding binding) {
+  bridge_types.ShortcutBinding _mapShortcutBindingToBridge(
+    ShortcutBinding binding,
+  ) {
     return bridge_types.ShortcutBinding(
       id: binding.id,
       action: binding.action,

@@ -106,6 +106,68 @@ jobs:
           cd flutter/build/linux/x64/release
           tar czf waylex-linux-x64.tar.gz bundle/
 
+      - name: Package Arch Linux package
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd
+          VERSION="${{ steps.version.outputs.app_version }}"
+          PKGVER="${VERSION//+/_}"
+          PKGROOT="$RUNNER_TEMP/pkg-x64/root"
+          PKGOUT="$RUNNER_TEMP/pkg-x64/out"
+          BUNDLE_DIR="$PWD/flutter/build/linux/x64/release/bundle"
+
+          rm -rf "$PKGROOT" "$PKGOUT"
+          mkdir -p "$PKGROOT/opt/waylex" \
+                   "$PKGROOT/usr/bin" \
+                   "$PKGROOT/usr/share/applications" \
+                   "$PKGROOT/usr/share/icons/hicolor/256x256/apps" \
+                   "$PKGOUT"
+
+          cp -a "$BUNDLE_DIR/." "$PKGROOT/opt/waylex/"
+          install -Dm755 /dev/stdin "$PKGROOT/usr/bin/waylex" <<'EOF'
+          #!/bin/sh
+          exec /opt/waylex/run.sh "$@"
+          EOF
+
+          cat > "$PKGROOT/usr/share/applications/waylex.desktop" <<'EOF'
+          [Desktop Entry]
+          Name=Waylex
+          Comment=AI Translation Desktop Tool
+          Exec=waylex
+          Icon=waylex
+          StartupWMClass=com.xym.ft.Waylex
+          Type=Application
+          Categories=Utility;Translation;Office;
+          StartupNotify=true
+          Terminal=false
+          Keywords=translate;translation;ocr;ai;clipboard;
+          EOF
+
+          install -Dm644 flatpak/com.xym.ft.Waylex.png \
+            "$PKGROOT/usr/share/icons/hicolor/256x256/apps/waylex.png"
+
+          cat > "$PKGROOT/.PKGINFO" <<EOF
+          pkgname = waylex
+          pkgbase = waylex
+          pkgver = ${PKGVER}
+          pkgrel = 1
+          pkgdesc = AI Translation Desktop Tool
+          url = https://github.com/${{ github.repository }}
+          builddate = $(date +%s)
+          packager = GitHub Actions
+          size = $(du -sb "$PKGROOT" | cut -f1)
+          arch = x86_64
+          license = MIT
+          depend = gtk3
+          depend = libayatana-appindicator
+          depend = sqlite
+          depend = tesseract
+          EOF
+
+          PACKAGE_NAME="waylex-${PKGVER}-1-x86_64.pkg.tar.zst"
+          tar --zstd -cf "$PKGOUT/$PACKAGE_NAME" -C "$PKGROOT" .
+          cp "$PKGOUT/$PACKAGE_NAME" flutter/build/linux/x64/release/
+
       - name: Rename AppImage
         run: |
           mv build/Waylex-x86_64.AppImage build/Waylex-linux-x86_64.AppImage || true
@@ -119,6 +181,7 @@ jobs:
             build/*.AppImage
             !build/appimagetool-*.AppImage
             flutter/build/linux/x64/release/waylex-linux-x64.tar.gz
+            flutter/build/linux/x64/release/*.pkg.tar.zst
 
       - name: Upload bundle for Flatpak
         uses: actions/upload-artifact@v4
@@ -209,6 +272,68 @@ jobs:
           cd flutter/build/linux/arm64/release
           tar czf waylex-linux-aarch64.tar.gz bundle/
 
+      - name: Package Arch Linux package (aarch64)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zstd
+          VERSION="${{ steps.version.outputs.app_version }}"
+          PKGVER="${VERSION//+/_}"
+          PKGROOT="$RUNNER_TEMP/pkg-arm64/root"
+          PKGOUT="$RUNNER_TEMP/pkg-arm64/out"
+          BUNDLE_DIR="$PWD/flutter/build/linux/arm64/release/bundle"
+
+          rm -rf "$PKGROOT" "$PKGOUT"
+          mkdir -p "$PKGROOT/opt/waylex" \
+                   "$PKGROOT/usr/bin" \
+                   "$PKGROOT/usr/share/applications" \
+                   "$PKGROOT/usr/share/icons/hicolor/256x256/apps" \
+                   "$PKGOUT"
+
+          cp -a "$BUNDLE_DIR/." "$PKGROOT/opt/waylex/"
+          install -Dm755 /dev/stdin "$PKGROOT/usr/bin/waylex" <<'EOF'
+          #!/bin/sh
+          exec /opt/waylex/run.sh "$@"
+          EOF
+
+          cat > "$PKGROOT/usr/share/applications/waylex.desktop" <<'EOF'
+          [Desktop Entry]
+          Name=Waylex
+          Comment=AI Translation Desktop Tool
+          Exec=waylex
+          Icon=waylex
+          StartupWMClass=com.xym.ft.Waylex
+          Type=Application
+          Categories=Utility;Translation;Office;
+          StartupNotify=true
+          Terminal=false
+          Keywords=translate;translation;ocr;ai;clipboard;
+          EOF
+
+          install -Dm644 flatpak/com.xym.ft.Waylex.png \
+            "$PKGROOT/usr/share/icons/hicolor/256x256/apps/waylex.png"
+
+          cat > "$PKGROOT/.PKGINFO" <<EOF
+          pkgname = waylex
+          pkgbase = waylex
+          pkgver = ${PKGVER}
+          pkgrel = 1
+          pkgdesc = AI Translation Desktop Tool
+          url = https://github.com/${{ github.repository }}
+          builddate = $(date +%s)
+          packager = GitHub Actions
+          size = $(du -sb "$PKGROOT" | cut -f1)
+          arch = aarch64
+          license = MIT
+          depend = gtk3
+          depend = libayatana-appindicator
+          depend = sqlite
+          depend = tesseract
+          EOF
+
+          PACKAGE_NAME="waylex-${PKGVER}-1-aarch64.pkg.tar.zst"
+          tar --zstd -cf "$PKGOUT/$PACKAGE_NAME" -C "$PKGROOT" .
+          cp "$PKGOUT/$PACKAGE_NAME" flutter/build/linux/arm64/release/
+
       - name: Rename AppImage
         run: |
           mv build/Waylex-aarch64.AppImage build/Waylex-linux-aarch64.AppImage || true
@@ -221,6 +346,7 @@ jobs:
             build/*.AppImage
             !build/appimagetool-*.AppImage
             flutter/build/linux/arm64/release/waylex-linux-aarch64.tar.gz
+            flutter/build/linux/arm64/release/*.pkg.tar.zst
 
   build-macos:
     runs-on: macos-latest
