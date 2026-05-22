@@ -75,7 +75,7 @@ jobs:
       - name: Generate FFI bindings
         working-directory: flutter
         run: |
-          cargo install flutter_rust_bridge_codegen
+          cargo install flutter_rust_bridge_codegen cargo-expand
           flutter_rust_bridge_codegen generate
 
       - name: Build Flutter Linux
@@ -149,8 +149,8 @@ jobs:
           cat > "$PKGROOT/.PKGINFO" <<EOF
           pkgname = waylex
           pkgbase = waylex
-          pkgver = ${PKGVER}
-          pkgrel = 1
+          xdata = pkgtype=pkg
+          pkgver = ${PKGVER}-1
           pkgdesc = AI Translation Desktop Tool
           url = https://github.com/${{ github.repository }}
           builddate = $(date +%s)
@@ -165,7 +165,13 @@ jobs:
           EOF
 
           PACKAGE_NAME="waylex-${PKGVER}-1-x86_64.pkg.tar.zst"
-          tar --zstd -cf "$PKGOUT/$PACKAGE_NAME" -C "$PKGROOT" .
+          (
+            cd "$PKGROOT"
+            tar --zstd -cf "$PKGOUT/$PACKAGE_NAME" \
+              .PKGINFO \
+              opt \
+              usr
+          )
           cp "$PKGOUT/$PACKAGE_NAME" flutter/build/linux/x64/release/
 
       - name: Rename AppImage
@@ -242,7 +248,7 @@ jobs:
       - name: Generate FFI bindings
         working-directory: flutter
         run: |
-          cargo install flutter_rust_bridge_codegen
+          cargo install flutter_rust_bridge_codegen cargo-expand
           flutter_rust_bridge_codegen generate
 
       - name: Build Flutter Linux (aarch64)
@@ -315,8 +321,8 @@ jobs:
           cat > "$PKGROOT/.PKGINFO" <<EOF
           pkgname = waylex
           pkgbase = waylex
-          pkgver = ${PKGVER}
-          pkgrel = 1
+          xdata = pkgtype=pkg
+          pkgver = ${PKGVER}-1
           pkgdesc = AI Translation Desktop Tool
           url = https://github.com/${{ github.repository }}
           builddate = $(date +%s)
@@ -331,7 +337,13 @@ jobs:
           EOF
 
           PACKAGE_NAME="waylex-${PKGVER}-1-aarch64.pkg.tar.zst"
-          tar --zstd -cf "$PKGOUT/$PACKAGE_NAME" -C "$PKGROOT" .
+          (
+            cd "$PKGROOT"
+            tar --zstd -cf "$PKGOUT/$PACKAGE_NAME" \
+              .PKGINFO \
+              opt \
+              usr
+          )
           cp "$PKGOUT/$PACKAGE_NAME" flutter/build/linux/arm64/release/
 
       - name: Rename AppImage
@@ -431,7 +443,7 @@ jobs:
       - name: Generate FFI bindings
         working-directory: flutter
         run: |
-          cargo install flutter_rust_bridge_codegen
+          cargo install flutter_rust_bridge_codegen cargo-expand
           flutter_rust_bridge_codegen generate
 
       - name: Build Flutter macOS
@@ -527,7 +539,7 @@ jobs:
       - name: Generate FFI bindings
         working-directory: flutter
         run: |
-          cargo install flutter_rust_bridge_codegen
+          cargo install flutter_rust_bridge_codegen cargo-expand
           flutter_rust_bridge_codegen generate
 
       - name: Build Flutter Windows

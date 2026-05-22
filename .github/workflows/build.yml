@@ -149,7 +149,7 @@ jobs:
             - name: Generate FFI bindings
               working-directory: flutter
               run: |
-                  cargo install flutter_rust_bridge_codegen
+                  cargo install flutter_rust_bridge_codegen cargo-expand
                   flutter_rust_bridge_codegen generate
 
             - name: Build Flutter Linux

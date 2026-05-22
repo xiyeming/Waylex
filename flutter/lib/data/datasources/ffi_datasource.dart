@@ -247,7 +247,7 @@ class FfiDatasource {
     try {
       return await bridge.getAppVersion();
     } catch (e) {
-      return '1.2.1';
+      return '1.2.2';
     }
   }
 
