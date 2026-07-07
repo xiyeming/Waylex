@@ -7,6 +7,12 @@ import '../../data/models/provider_config.dart';
 import '../../data/models/shortcut_binding.dart';
 import '../../presentation/services/hotkey_service.dart';
 import '../../presentation/widgets/common/update_dialog.dart';
+import '../../presentation/providers/theme_provider.dart';
+import '../widgets/common/loading_indicator.dart';
+import '../theme/app_design_tokens.dart';
+import '../widgets/foundation/app_card.dart';
+import '../widgets/foundation/app_toggle.dart';
+import '../widgets/common/app_divider.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -45,10 +51,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage>
           isScrollable: true,
           tabAlignment: TabAlignment.start,
           tabs: const [
-            Tab(icon: Icon(Icons.api), text: '厂商'),
-            Tab(icon: Icon(Icons.keyboard), text: '快捷键'),
-            Tab(icon: Icon(Icons.language), text: '语言'),
-            Tab(icon: Icon(Icons.palette), text: '外观'),
+            Tab(icon: Icon(Icons.api, size: AppTokens.iconMd), text: '厂商'),
+            Tab(icon: Icon(Icons.keyboard, size: AppTokens.iconMd), text: '快捷键'),
+            Tab(icon: Icon(Icons.language, size: AppTokens.iconMd), text: '语言'),
+            Tab(icon: Icon(Icons.palette, size: AppTokens.iconMd), text: '外观'),
           ],
         ),
       ),
@@ -87,8 +93,13 @@ class _ProviderSettingsTabState extends ConsumerState<_ProviderSettingsTab> {
       final ffi = FfiDatasource();
       final providers = await ffi.getProviders();
       if (mounted) setState(() { _providers = providers; _isLoading = false; });
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载厂商配置失败: $e'), duration: const Duration(seconds: 2)),
+        );
+      }
     }
   }
 
@@ -132,7 +143,7 @@ class _ProviderSettingsTabState extends ConsumerState<_ProviderSettingsTab> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return AppLoadingIndicator.scaffoldBody();
     }
 
     final defaultProviders = <String, ProviderConfig>{
@@ -160,10 +171,10 @@ class _ProviderSettingsTabState extends ConsumerState<_ProviderSettingsTab> {
       ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: AppTokens.pagePadding,
       children: [
         ...sorted.map((p) => _buildProviderCard(context, p)),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppTokens.space24),
         OutlinedButton.icon(
           onPressed: () => context.go('/settings/provider'),
           icon: const Icon(Icons.add),
@@ -182,41 +193,38 @@ class _ProviderSettingsTabState extends ConsumerState<_ProviderSettingsTab> {
       'qwen': Icons.auto_awesome, 'deepseek': Icons.auto_awesome, 'kimi': Icons.auto_awesome,
       'glm': Icons.auto_awesome, 'anthropic': Icons.auto_awesome, 'azure': Icons.cloud, 'custom': Icons.tune,
     };
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        child: Row(children: [
+    final theme = Theme.of(context);
+    return AppCard.interactive(
+      onTap: () => context.go('/settings/provider?id=${p.id}&name=${Uri.encodeComponent(p.name)}&model=${Uri.encodeComponent(p.model)}'),
+      child: Row(
+        children: [
+          Icon(icons[p.id] ?? Icons.api, size: AppTokens.iconLg, color: theme.colorScheme.primary),
+          const SizedBox(width: AppTokens.space12),
           Expanded(
-            child: InkWell(
-              onTap: () => context.go('/settings/provider?id=${p.id}&name=${Uri.encodeComponent(p.name)}&model=${Uri.encodeComponent(p.model)}'),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-                child: Row(children: [
-                  Icon(icons[p.id] ?? Icons.api, color: Theme.of(context).colorScheme.primary),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(p.name, style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
-                      const SizedBox(height: 2),
-                      Text('模型: ${p.model}${p.apiUrl != null && p.apiUrl!.isNotEmpty ? ' | ${p.apiUrl}' : ''}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                    ]),
-                  ),
-                  Icon(Icons.circle, size: 10, color: isConfigured ? Colors.green : Colors.grey),
-                  const SizedBox(width: 8),
-                ]),
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(p.name, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w500)),
+                    ),
+                    Icon(Icons.circle, size: AppTokens.iconXs, color: isConfigured ? theme.colorScheme.primary : theme.colorScheme.outline),
+                    const SizedBox(width: AppTokens.space12),
+                    AppToggle.switch_(value: isActive, onChanged: (_) => _toggleActive(p)),
+                    const SizedBox(width: AppTokens.space4),
+                    Icon(Icons.chevron_right, size: AppTokens.iconSm, color: theme.colorScheme.onSurfaceVariant),
+                  ],
+                ),
+                const SizedBox(height: AppTokens.space2),
+                Text(
+                  '模型: ${p.model}',
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
             ),
           ),
-          Switch(
-            value: isActive,
-            onChanged: (_) => _toggleActive(p),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          const SizedBox(width: 4),
-          const Icon(Icons.chevron_right),
-          const SizedBox(width: 12),
-        ]),
+        ],
       ),
     );
   }
@@ -259,8 +267,13 @@ class _ShortcutSettingsTabState extends ConsumerState<_ShortcutSettingsTab> {
         bindings = defaults;
       }
       if (mounted) setState(() { _bindings = bindings; _isLoading = false; });
-    } catch (_) {
-      if (mounted) setState(() => _isLoading = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载快捷键失败: $e'), duration: const Duration(seconds: 2)),
+        );
+      }
     }
   }
 
@@ -268,7 +281,18 @@ class _ShortcutSettingsTabState extends ConsumerState<_ShortcutSettingsTab> {
     try {
       final service = HotkeyService();
       await service.updateAndReregister(_bindings);
-    } catch (_) {}
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('快捷键已更新'), duration: Duration(seconds: 1)),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('更新快捷键失败: $e'), duration: const Duration(seconds: 2)),
+        );
+      }
+    }
   }
 
   Future<void> _recordShortcut(ShortcutBinding binding) async {
@@ -291,46 +315,58 @@ class _ShortcutSettingsTabState extends ConsumerState<_ShortcutSettingsTab> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_isLoading) return AppLoadingIndicator.fullScreen();
 
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: AppTokens.pagePadding,
       children: [
         Text('修改后即时生效，点击快捷键组合开始录制', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
-        const SizedBox(height: 12),
-        ..._bindings.map((b) => Card(
+        const SizedBox(height: AppTokens.space12),
+        ..._bindings.map((b) => AppCard.surface(
+          padding: AppTokens.cardPaddingCompact,
           child: Column(
             children: [
-              SwitchListTile(
-                title: Text(_actions[b.id] ?? b.action, style: theme.textTheme.bodyMedium),
-                value: b.enabled,
-                onChanged: (v) {
-                  setState(() {
-                    final idx = _bindings.indexWhere((b2) => b2.id == b.id);
-                    _bindings[idx] = b.copyWith(enabled: v);
-                  });
-                  final ffi = FfiDatasource();
-                  ffi.updateShortcut(b.copyWith(enabled: v));
-                  _updateAndApply();
-                },
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(_actions[b.id] ?? b.action, style: theme.textTheme.bodyMedium),
+                  ),
+                  AppToggle.switch_(value: b.enabled, onChanged: (v) {
+                    setState(() {
+                      final idx = _bindings.indexWhere((b2) => b2.id == b.id);
+                      _bindings[idx] = b.copyWith(enabled: v);
+                    });
+                    final ffi = FfiDatasource();
+                    ffi.updateShortcut(b.copyWith(enabled: v));
+                    _updateAndApply();
+                  }),
+                ],
               ),
-              ListTile(
-                title: const Text('快捷键', style: TextStyle(fontSize: 13)),
-                trailing: GestureDetector(
-                  onTap: () => _recordShortcut(b),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: theme.colorScheme.surfaceContainerHighest, borderRadius: BorderRadius.circular(6), border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.3))),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(b.keyCombination, style: theme.textTheme.labelMedium?.copyWith(fontFamily: 'monospace')),
-                        const SizedBox(width: 4),
-                        Icon(Icons.edit, size: 14, color: theme.colorScheme.onSurfaceVariant),
-                      ],
+              AppDivider.subtle(),
+              Row(
+                children: [
+                  Text('快捷键', style: theme.textTheme.labelMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => _recordShortcut(b),
+                    child: Container(
+                      padding: AppTokens.shortcutBadgePadding,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(AppTokens.radiusMd),
+                        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(b.keyCombination, style: theme.textTheme.labelMedium?.copyWith(fontFamily: 'monospace', color: theme.colorScheme.onSurface)),
+                          const SizedBox(width: AppTokens.space4),
+                          Icon(Icons.edit, size: AppTokens.iconMd, color: theme.colorScheme.onSurfaceVariant),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
@@ -421,13 +457,13 @@ class _RecordShortcutDialogState extends State<_RecordShortcutDialog> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('同时按下组合键 (Ctrl/Shift/Alt/Super + 字母)', style: theme.textTheme.bodySmall),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppTokens.space16),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 20),
+            padding: const EdgeInsets.symmetric(vertical: AppTokens.space20),
             decoration: BoxDecoration(
               border: Border.all(color: _recording ? theme.colorScheme.primary : theme.colorScheme.outline, width: 2),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppTokens.radius2Xl),
               color: _recording ? theme.colorScheme.primary.withValues(alpha: 0.05) : theme.colorScheme.surfaceContainerHighest,
             ),
             alignment: Alignment.center,
@@ -454,28 +490,47 @@ class _LanguageSettingsTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: AppTokens.pagePadding,
       children: [
-        SwitchListTile(
-          title: const Text('自动检测语言'),
-          subtitle: const Text('翻译时自动识别源语言'),
-          value: true,
-          onChanged: (_) {},
+        AppCard.surface(
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('自动检测语言', style: theme.textTheme.bodyMedium),
+                    const SizedBox(height: AppTokens.space2),
+                    Text('翻译时自动识别源语言', style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+              AppToggle.switch_(value: true, onChanged: (_) {}),
+            ],
+          ),
         ),
-        const Divider(),
+        AppDivider.bold(height: AppTokens.space24),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: AppTokens.space16, vertical: AppTokens.space8),
           child: Text(
             '常用语言',
             style: Theme.of(context).textTheme.titleSmall,
           ),
         ),
         ...['中文', '英语', '日语', '韩语', '法语'].map((lang) {
-          return CheckboxListTile(
-            title: Text(lang),
-            value: true,
-            onChanged: (_) {},
+          return AppCard.surface(
+            margin: const EdgeInsets.symmetric(horizontal: AppTokens.space16, vertical: AppTokens.space4),
+            padding: const EdgeInsets.symmetric(horizontal: AppTokens.space16, vertical: AppTokens.space12),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(lang, style: Theme.of(context).textTheme.bodyMedium),
+                ),
+                AppToggle.checkbox(value: true, onChanged: (_) {}),
+              ],
+            ),
           );
         }),
       ],
@@ -491,7 +546,6 @@ class _ThemeSettingsTab extends ConsumerStatefulWidget {
 }
 
 class _ThemeSettingsTabState extends ConsumerState<_ThemeSettingsTab> {
-  String _themeMode = 'system';
   String _version = '';
   bool _checking = false;
 
@@ -533,30 +587,117 @@ class _ThemeSettingsTabState extends ConsumerState<_ThemeSettingsTab> {
 
   @override
   Widget build(BuildContext context) {
+    final currentThemeMode = ref.watch(themeModeProvider);
+    final currentAccent = ref.watch(accentColorProvider);
+    final themeModeValue = currentThemeMode == ThemeMode.light
+        ? 'light'
+        : currentThemeMode == ThemeMode.dark
+            ? 'dark'
+            : 'system';
+
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: AppTokens.pagePadding,
       children: [
-        RadioGroup<String>(
-          groupValue: _themeMode,
-          onChanged: (v) { if (v != null) setState(() => _themeMode = v); },
+        AppCard.surface(
+          padding: EdgeInsets.zero,
           child: Column(
             children: [
-              RadioListTile<String>(
-                title: const Text('跟随系统'),
-                value: 'system',
+              _ThemeOption(
+                label: '跟随系统',
+                selected: themeModeValue == 'system',
+                onTap: () {
+                  final mode = ThemeMode.system;
+                  ref.read(themeModeProvider.notifier).setTheme(mode);
+                },
               ),
-              RadioListTile<String>(
-                title: const Text('浅色模式'),
-                value: 'light',
+              AppDivider.subtle(),
+              _ThemeOption(
+                label: '浅色模式',
+                selected: themeModeValue == 'light',
+                onTap: () {
+                  final mode = ThemeMode.light;
+                  ref.read(themeModeProvider.notifier).setTheme(mode);
+                },
               ),
-              RadioListTile<String>(
-                title: const Text('深色模式'),
-                value: 'dark',
+              AppDivider.subtle(),
+              _ThemeOption(
+                label: '深色模式',
+                selected: themeModeValue == 'dark',
+                onTap: () {
+                  final mode = ThemeMode.dark;
+                  ref.read(themeModeProvider.notifier).setTheme(mode);
+                },
               ),
             ],
           ),
         ),
-        const Divider(height: 32),
+        AppDivider.bold(height: AppTokens.space32),
+        AppCard.surface(
+          padding: EdgeInsets.zero,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                    AppTokens.space16, AppTokens.space16, AppTokens.space16, AppTokens.space8),
+                child: Text(
+                  '主题色',
+                  style: TextStyle(
+                    fontSize: AppTokens.fontCaption,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: AppTokens.space16, vertical: AppTokens.space4),
+                child: Wrap(
+                  spacing: AppTokens.space12,
+                  runSpacing: AppTokens.space12,
+                  children: AccentColor.all.map((accent) {
+                    final isSelected = currentAccent == accent;
+                    return GestureDetector(
+                      onTap: () =>
+                          ref.read(accentColorProvider.notifier).setAccent(accent),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: accent.value,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: isSelected
+                                ? Theme.of(context).colorScheme.onSurface
+                                : Colors.transparent,
+                            width: 2.5,
+                          ),
+                          boxShadow: isSelected
+                              ? [
+                                  BoxShadow(
+                                    color: accent.value.withValues(alpha: 0.35),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ]
+                              : null,
+                        ),
+                        child: isSelected
+                            ? Icon(Icons.check,
+                                size: AppTokens.iconMd,
+                                color: Theme.of(context).colorScheme.onPrimary)
+                            : null,
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: AppTokens.space8),
+            ],
+          ),
+        ),
+        AppDivider.bold(height: AppTokens.space32),
         ListTile(
           leading: const Icon(Icons.info_outline),
           title: const Text('当前版本'),
@@ -564,16 +705,42 @@ class _ThemeSettingsTabState extends ConsumerState<_ThemeSettingsTab> {
         ),
         ListTile(
           leading: _checking
-              ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? AppLoadingIndicator.inline(strokeWidth: 2)
               : const Icon(Icons.system_update),
           title: const Text('检查更新'),
           onTap: _checking ? null : _checkUpdate,
         ),
       ],
+    );
+  }
+}
+
+class _ThemeOption extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _ThemeOption({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppTokens.space12, vertical: AppTokens.space8),
+        child: Row(
+          children: [
+            Text(label, style: theme.textTheme.bodyMedium),
+            const Spacer(),
+            AppToggle.radio(value: selected, onChanged: (_) => onTap()),
+          ],
+        ),
+      ),
     );
   }
 }

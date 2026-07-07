@@ -34,7 +34,9 @@ fn log_dir() -> PathBuf {
 
 fn init_file_logging() {
     let log_path = log_dir();
-    std::fs::create_dir_all(&log_path).ok();
+    if let Err(e) = std::fs::create_dir_all(&log_path) {
+        eprintln!("[rust] Failed to create log dir {}: {}", log_path.display(), e);
+    }
 
     let file_appender = tracing_appender::rolling::daily(&log_path, "waylex");
     let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
@@ -45,12 +47,18 @@ fn init_file_logging() {
         .with_ansi(false)
         .with_writer(non_blocking);
 
-    let env_filter = tracing_subscriber::EnvFilter::from_default_env();
+    // Build filter: RUST_LOG env var takes priority, default to "info"
+    let env_filter = match tracing_subscriber::EnvFilter::try_from_default_env() {
+        Ok(f) => f,
+        Err(_) => tracing_subscriber::EnvFilter::new("info"),
+    };
 
     let _ = tracing_subscriber::registry()
         .with(env_filter)
         .with(fmt_layer)
         .try_init();
+
+    eprintln!("[rust] File logging initialized at {}", log_path.display());
 }
 
 fn cleanup_old_logs() {
@@ -79,6 +87,7 @@ fn cleanup_old_logs() {
 /// 在 Flutter 应用启动时调用
 pub fn init_services() {
     INIT.call_once(|| {
+        eprintln!("[rust] init_services called");
         init_file_logging();
         cleanup_old_logs();
         tracing::info!("Initializing flutter-translate services...");

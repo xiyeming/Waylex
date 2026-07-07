@@ -57,6 +57,8 @@ pub struct TranslationRule {
 pub struct ActiveSession {
     pub last_provider_id: String,
     pub last_compare_providers: Vec<String>,
+    pub window_width: Option<i32>,
+    pub window_height: Option<i32>,
     pub last_used: DateTime<Utc>,
 }
 

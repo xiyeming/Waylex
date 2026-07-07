@@ -85,6 +85,8 @@ impl Database {
                 id INTEGER PRIMARY KEY CHECK (id = 1),
                 last_provider_id TEXT NOT NULL DEFAULT '',
                 last_compare_providers TEXT NOT NULL DEFAULT '[]',
+                window_width INTEGER,
+                window_height INTEGER,
                 last_used TEXT NOT NULL DEFAULT (datetime('now'))
             )
             "#,
@@ -101,6 +103,36 @@ impl Database {
         .execute(pool)
         .await
         .map_err(ConfigError::DbError)?;
+
+        // Migration: add window_width/window_height columns if missing (added after initial release)
+        {
+            let has_width: bool = sqlx::query_scalar(
+                "SELECT COUNT(*) > 0 FROM pragma_table_info('active_sessions') WHERE name = 'window_width'"
+            )
+            .fetch_one(pool)
+            .await
+            .map_err(ConfigError::DbError)?;
+
+            let has_height: bool = sqlx::query_scalar(
+                "SELECT COUNT(*) > 0 FROM pragma_table_info('active_sessions') WHERE name = 'window_height'"
+            )
+            .fetch_one(pool)
+            .await
+            .map_err(ConfigError::DbError)?;
+
+            if !has_width {
+                sqlx::query("ALTER TABLE active_sessions ADD COLUMN window_width INTEGER")
+                    .execute(pool)
+                    .await
+                    .map_err(ConfigError::DbError)?;
+            }
+            if !has_height {
+                sqlx::query("ALTER TABLE active_sessions ADD COLUMN window_height INTEGER")
+                    .execute(pool)
+                    .await
+                    .map_err(ConfigError::DbError)?;
+            }
+        }
 
         sqlx::query(
             r#"
@@ -214,13 +246,17 @@ impl Database {
 static DATABASE: once_cell::sync::Lazy<tokio::sync::Mutex<Option<Database>>> =
     once_cell::sync::Lazy::new(|| tokio::sync::Mutex::new(None));
 
-pub async fn get_pool() -> SqlitePool {
+pub async fn get_pool() -> Result<SqlitePool, ConfigError> {
+    let guard = DATABASE.lock().await;
+    if let Some(ref db) = *guard {
+        return Ok(db.pool().clone());
+    }
+    drop(guard);
+
     let mut guard = DATABASE.lock().await;
     if guard.is_none() {
-        let db = Database::init()
-            .await
-            .expect("Failed to initialize database");
+        let db = Database::init().await?;
         *guard = Some(db);
     }
-    guard.as_ref().unwrap().pool().clone()
+    Ok(guard.as_ref().unwrap().pool().clone())
 }

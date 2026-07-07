@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_translate/src/rust/ffi/types.dart' show UpdateInfo;
 import 'package:url_launcher/url_launcher.dart';
 import '../../../data/datasources/ffi_datasource.dart';
+import '../../theme/app_design_tokens.dart';
 
 class UpdateDialog extends StatelessWidget {
   final UpdateInfo info;
@@ -24,7 +25,7 @@ class UpdateDialog extends StatelessWidget {
       title: Row(
         children: [
           Icon(Icons.system_update, color: theme.colorScheme.primary),
-          const SizedBox(width: 8),
+          const SizedBox(width: AppTokens.space8),
           const Text('发现新版本'),
         ],
       ),
@@ -45,7 +46,7 @@ class UpdateDialog extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppTokens.space4),
             Row(
               children: [
                 Text('最新版本: ', style: theme.textTheme.bodyMedium),
@@ -58,16 +59,16 @@ class UpdateDialog extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTokens.space16),
             if (info.releaseNotes.isNotEmpty) ...[
               Text('更新内容:', style: theme.textTheme.titleSmall),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppTokens.space8),
               Container(
                 constraints: const BoxConstraints(maxHeight: 200),
-                padding: const EdgeInsets.all(12),
+                padding: AppTokens.cardPaddingCompact,
                 decoration: BoxDecoration(
                   color: theme.colorScheme.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppTokens.radiusLg),
                 ),
                 child: SingleChildScrollView(
                   child: Text(

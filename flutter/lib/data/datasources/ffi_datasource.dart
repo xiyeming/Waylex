@@ -97,10 +97,24 @@ class FfiDatasource {
     }
   }
 
+  Future<void> saveWindowSize(int width, int height) async {
+    try {
+      await bridge.saveWindowSize(width: width, height: height);
+    } catch (e) {
+      throw ConfigException('保存窗口尺寸失败: $e');
+    }
+  }
+
   Future<ActiveSession> getActiveSession() async {
     try {
       final session = await bridge.getActiveSession();
-      return _mapActiveSession(session);
+      return ActiveSession(
+        lastProviderId: session.lastProviderId,
+        lastCompareProviders: session.lastCompareProviders.toList(),
+        windowWidth: session.windowWidth,
+        windowHeight: session.windowHeight,
+        lastUsed: session.lastUsed,
+      );
     } catch (e) {
       throw ConfigException('获取会话失败: $e');
     }
@@ -324,14 +338,6 @@ class FfiDatasource {
       sortOrder: config.sortOrder,
       systemPrompt: config.systemPrompt,
       createdAt: config.createdAt,
-    );
-  }
-
-  ActiveSession _mapActiveSession(bridge_types.ActiveSession session) {
-    return ActiveSession(
-      lastProviderId: session.lastProviderId,
-      lastCompareProviders: session.lastCompareProviders.toList(),
-      lastUsed: session.lastUsed,
     );
   }
 

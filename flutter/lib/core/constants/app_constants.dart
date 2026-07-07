@@ -1,5 +1,5 @@
 class AppConstants {
-  static const String appName = 'Flutter Translate';
+  static const String appName = 'Waylex';
   static const String appVersion = '0.1.0';
 
   // 响应时间阈值

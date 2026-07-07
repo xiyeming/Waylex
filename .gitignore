@@ -37,3 +37,6 @@ flatpak/*.tar.gz
 # Generated
 **/*.freezed.dart
 **/*.g.dart
+
+# FVM Version Cache
+.fvm/

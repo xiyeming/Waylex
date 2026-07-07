@@ -16,7 +16,7 @@ class RouteNames {
 
 final appRouter = GoRouter(
   initialLocation: RouteNames.floating,
-  debugLogDiagnostics: true,
+  debugLogDiagnostics: false,
   routes: [
     GoRoute(
       path: RouteNames.floating,

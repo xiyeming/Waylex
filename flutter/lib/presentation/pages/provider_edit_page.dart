@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/provider_config.dart';
 import '../../data/datasources/ffi_datasource.dart';
+import '../widgets/common/loading_indicator.dart';
+import '../theme/app_design_tokens.dart';
+import '../widgets/foundation/app_input.dart';
+import '../widgets/foundation/app_toggle.dart';
+import '../widgets/foundation/app_button.dart';
+import '../widgets/foundation/app_card.dart';
 
 class ProviderEditPage extends ConsumerStatefulWidget {
   final String? providerId;
@@ -86,7 +92,14 @@ class _ProviderEditPageState extends ConsumerState<ProviderEditPage> {
           _isActive = saved.isActive;
         });
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('加载配置失败: $e'), duration: const Duration(seconds: 2)),
+        );
+      }
+    }
     if (mounted) setState(() => _isLoading = false);
   }
 
@@ -201,7 +214,7 @@ try {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('取消')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('删除', style: TextStyle(color: Colors.red)),
+            child: Text('删除', style: TextStyle(color: AppTokens.error)),
           ),
         ],
       ),
@@ -224,10 +237,10 @@ try {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
+      return AppLoadingIndicator.scaffoldBody();
     }
 
     return Scaffold(
@@ -247,134 +260,111 @@ try {
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: AppTokens.pagePadding,
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: '名称',
-                  hintText: '例如: OpenAI, DeepL',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.label),
-                ),
-                validator: (v) => v == null || v.trim().isEmpty ? '请输入名称' : null,
+              AppInput.text(
+                label: '名称',
+                hintText: '例如: OpenAI, DeepL',
+                value: _nameController.text,
+                onChanged: (v) => _nameController.text = v,
+                prefixIcon: Icons.label,
+                onClear: () => _nameController.clear(),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTokens.space16),
 
-              TextFormField(
-                controller: _apiKeyController,
-                decoration: InputDecoration(
-                  labelText: 'API Key',
-                  hintText: '输入 API 密钥',
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.key),
-                  suffixIcon: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        icon: Icon(_obscureApiKey ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscureApiKey = !_obscureApiKey),
-                        tooltip: _obscureApiKey ? '显示' : '隐藏',
-                      ),
-                    ],
-                  ),
-                ),
+              AppInput.text(
+                label: 'API Key',
+                hintText: '输入 API 密钥',
+                value: _apiKeyController.text,
+                onChanged: (v) => _apiKeyController.text = v,
+                prefixIcon: Icons.key,
                 obscureText: _obscureApiKey,
-              ),
-              const SizedBox(height: 16),
-
-              TextFormField(
-                controller: _baseUrlController,
-                decoration: InputDecoration(
-                  labelText: 'Base URL',
-                  hintText: _isNew
-                      ? '例如: https://api.openai.com/v1'
-                      : '留空使用默认地址',
-                  border: const OutlineInputBorder(),
-                  prefixIcon: const Icon(Icons.link),
-                  helperText: '仅填写 Base URL，接口路径会自动拼接',
+                suffixIcon: IconButton(
+                  icon: Icon(_obscureApiKey ? Icons.visibility_off : Icons.visibility),
+                  onPressed: () => setState(() => _obscureApiKey = !_obscureApiKey),
+                  tooltip: _obscureApiKey ? '显示' : '隐藏',
                 ),
+                onClear: () => _apiKeyController.clear(),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTokens.space16),
 
-              TextFormField(
-                controller: _modelController,
-                decoration: const InputDecoration(
-                  labelText: '模型',
-                  hintText: '例如: gpt-4o-mini, deepseek-chat',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.smart_toy),
-                ),
-                validator: (v) => v == null || v.trim().isEmpty ? '请输入模型名称' : null,
+              AppInput.text(
+                label: 'Base URL',
+                hintText: _isNew
+                    ? '例如: https://api.openai.com/v1'
+                    : '留空使用默认地址',
+                value: _baseUrlController.text,
+                onChanged: (v) => _baseUrlController.text = v,
+                prefixIcon: Icons.link,
+                helperText: '仅填写 Base URL，接口路径会自动拼接',
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTokens.space16),
 
-              TextFormField(
-                controller: _systemPromptController,
-                decoration: const InputDecoration(
-                  labelText: '系统提示词 (可选)',
-                  hintText: '留空使用默认: You are a translation engine...',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.chat),
-                  alignLabelWithHint: true,
-                  helperText: '默认会强制模型只输出翻译结果，不进行对话',
-                ),
+              AppInput.text(
+                label: '模型',
+                hintText: '例如: gpt-4o-mini, deepseek-chat',
+                value: _modelController.text,
+                onChanged: (v) => _modelController.text = v,
+                prefixIcon: Icons.smart_toy,
+              ),
+              const SizedBox(height: AppTokens.space16),
+
+              AppInput.multiline(
+                label: '系统提示词 (可选)',
+                hintText: '留空使用默认: You are a translation engine...',
+                value: _systemPromptController.text,
+                onChanged: (v) => _systemPromptController.text = v,
+                prefixIcon: Icons.chat,
                 maxLines: 5,
-                minLines: 3,
+                helperText: '默认会强制模型只输出翻译结果，不进行对话',
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTokens.space16),
 
-              SwitchListTile(
-                title: const Text('启用此厂商'),
+              AppToggle.switch_(
+                label: '启用此厂商',
                 value: _isActive,
                 onChanged: (v) => setState(() => _isActive = v),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTokens.space24),
 
-              FilledButton.icon(
-                onPressed: _isSaving ? null : _save,
+              AppButton.primary(
+                label: _isSaving ? '保存中...' : '保存',
                 icon: _isSaving
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? AppLoadingIndicator.inlineForFilledButton()
                     : const Icon(Icons.save),
-                label: Text(_isSaving ? '保存中...' : '保存'),
+                onPressed: _isSaving ? null : _save,
+                isLoading: _isSaving,
+                fullWidth: true,
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppTokens.space16),
 
-              OutlinedButton.icon(
-                onPressed: _isTesting ? null : _testConnection,
+              AppButton.secondary(
+                label: _isTesting ? '测试中...' : '测试连接',
                 icon: _isTesting
-                    ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                    ? AppLoadingIndicator.inlineForOutlinedButton(context)
                     : const Icon(Icons.wifi_find),
-                label: Text(_isTesting ? '测试中...' : '测试连接'),
+                onPressed: _isTesting ? null : _testConnection,
+                isLoading: _isTesting,
+                fullWidth: true,
               ),
               if (_testResult != null) ...[
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: _testSuccess
-                        ? Colors.green.withValues(alpha: 0.1)
-                        : Colors.red.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: _testSuccess ? Colors.green : Colors.red,
-                      width: 1,
-                    ),
-                  ),
+                const SizedBox(height: AppTokens.space8),
+                AppCard.surface(
+                  padding: AppTokens.cardPadding,
                   child: Row(
                     children: [
                       Icon(_testSuccess ? Icons.check_circle : Icons.error,
-                          color: _testSuccess ? Colors.green : Colors.red, size: 20),
-                      const SizedBox(width: 8),
+                          color: _testSuccess ? theme.colorScheme.primary : theme.colorScheme.error, size: AppTokens.iconXl),
+                      const SizedBox(width: AppTokens.space8),
                       Expanded(
                         child: Text(
                           _testResult!,
                           style: TextStyle(
-                            color: _testSuccess ? Colors.green : Colors.red,
+                            color: _testSuccess ? theme.colorScheme.primary : theme.colorScheme.error,
                           ),
                         ),
                       ),

@@ -104,6 +104,8 @@ mod tests {
         let session = ActiveSession {
             last_provider_id: "openai".to_string(),
             last_compare_providers: vec!["openai".to_string(), "deepseek".to_string()],
+            window_width: Some(400),
+            window_height: Some(600),
             last_used: chrono::Utc::now(),
         };
 

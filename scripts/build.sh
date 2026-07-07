@@ -91,7 +91,12 @@ echo "Rust library built: ${RUST_TARGET_DIR}/${LIB_NAME}"
 # Generate FFI bindings (platform-agnostic)
 echo "Generating FFI bindings..."
 cd "$FLUTTER_DIR"
-flutter_rust_bridge_codegen generate
+if command -v flutter_rust_bridge_codegen &> /dev/null; then
+    flutter_rust_bridge_codegen generate
+else
+    echo "WARNING: flutter_rust_bridge_codegen not found, skipping FFI code generation."
+    echo "  Ensure frb_generated.dart and bridge.dart are up-to-date before building."
+fi
 
 # Flutter 构建仅在 Linux 上执行（当前 Waylex 仅支持 Linux Flutter 桌面）
 if [ "$TARGET_OS" = "linux" ]; then

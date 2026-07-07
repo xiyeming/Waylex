@@ -9,11 +9,15 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 class ActiveSession {
   final String lastProviderId;
   final List<String> lastCompareProviders;
+  final int? windowWidth;
+  final int? windowHeight;
   final DateTime lastUsed;
 
   const ActiveSession({
     required this.lastProviderId,
     required this.lastCompareProviders,
+    this.windowWidth,
+    this.windowHeight,
     required this.lastUsed,
   });
 
@@ -21,6 +25,8 @@ class ActiveSession {
   int get hashCode =>
       lastProviderId.hashCode ^
       lastCompareProviders.hashCode ^
+      windowWidth.hashCode ^
+      windowHeight.hashCode ^
       lastUsed.hashCode;
 
   @override
@@ -30,6 +36,8 @@ class ActiveSession {
           runtimeType == other.runtimeType &&
           lastProviderId == other.lastProviderId &&
           lastCompareProviders == other.lastCompareProviders &&
+          windowWidth == other.windowWidth &&
+          windowHeight == other.windowHeight &&
           lastUsed == other.lastUsed;
 }
 

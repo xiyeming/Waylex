@@ -6,6 +6,7 @@ use crate::platform::PlatformBackend;
 pub mod hotkey;
 pub mod clipboard;
 pub mod screenshot;
+pub mod screenshot_impl;
 pub mod tray;
 
 pub struct LinuxBackend {
@@ -43,7 +44,10 @@ impl PlatformBackend for LinuxBackend {
     fn poll_hotkey_event(&self) -> Option<String> {
         match self.hotkey_service.try_lock() {
             Ok(mut service) => service.poll_event(0),
-            Err(_) => None,
+            Err(_) => {
+                tracing::debug!("[hotkey] poll_hotkey_event: mutex busy, skip tick");
+                None
+            }
         }
     }
 

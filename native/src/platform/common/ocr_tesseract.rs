@@ -2,9 +2,9 @@ use crate::ffi::error::OcrError;
 use crate::ffi::types::OcrResult;
 use image::DynamicImage;
 use image::imageops::{self, FilterType};
-use std::io::Write;
 use std::process::Command;
 use std::time::Instant;
+use tempfile::NamedTempFile;
 
 /// 使用 tesseract CLI 对图像进行 OCR 识别（阻塞调用）
 ///
@@ -18,16 +18,18 @@ pub fn recognize_blocking(image_data: &[u8], lang: &str) -> Result<OcrResult, Oc
 
     let processed = preprocess(img);
 
-    let temp_dir = std::env::temp_dir();
-    let temp_path = temp_dir.join("Waylex_ocr.png");
+    // 使用 NamedTempFile 生成唯一临时文件，避免并发竞态
+    let temp_file = NamedTempFile::with_suffix(".png")
+        .map_err(|e| OcrError::IoError(std::io::Error::other(e.to_string())))?;
+    let temp_path = temp_file.path();
+
     {
-        let mut file = std::fs::File::create(&temp_path).map_err(OcrError::IoError)?;
+        let mut file = std::fs::File::create(temp_path).map_err(OcrError::IoError)?;
         processed
             .write_to(&mut file, image::ImageFormat::Png)
             .map_err(|e| {
                 OcrError::IoError(std::io::Error::other(e.to_string()))
             })?;
-        file.write_all(b"")?;
     }
 
     let tesseract_lang = match lang {
@@ -55,7 +57,17 @@ pub fn recognize_blocking(image_data: &[u8], lang: &str) -> Result<OcrResult, Oc
         .output()
         .map_err(OcrError::CommandError)?;
 
-    std::fs::remove_file(&temp_path).ok();
+    // NamedTempFile 在 drop 时自动清理
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        tracing::warn!("tesseract failed: {}", stderr);
+        return Err(OcrError::TesseractError(format!(
+            "tesseract exited with code {:?}: {}",
+            output.status.code(),
+            stderr.trim()
+        )));
+    }
 
     let text = String::from_utf8_lossy(&output.stdout).trim().to_string();
     let elapsed = start.elapsed().as_millis() as u64;

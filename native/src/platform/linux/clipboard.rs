@@ -46,7 +46,6 @@ impl WaylandClipboardService {
 
     fn get_text(&self) -> Result<String, ClipboardError> {
         let output = Command::new("wl-paste")
-            .arg("--no-newline")
             .output()
             .map_err(|e| ClipboardError::WlError(e.to_string()))?;
 
@@ -56,7 +55,7 @@ impl WaylandClipboardService {
 
         String::from_utf8(output.stdout)
             .map_err(ClipboardError::Utf8Error)
-            .map(|s| s.trim().to_string())
+            .map(|s| s.to_string())
     }
 
     fn set_text(&self, text: &str) -> Result<(), ClipboardError> {
@@ -82,3 +81,4 @@ impl WaylandClipboardService {
         }
     }
 }
+

@@ -3,8 +3,65 @@ use crate::ffi::types::{TranslateRequest, TranslationResult, ProviderConfig, Act
 use crate::ffi::error::{TranslateError, ConfigError, OcrError, ClipboardError, TrayError, HotkeyError};
 use crate::config::ConfigManager;
 use crate::update::UpdateService;
+use std::time::Duration;
+use tracing::warn;
 
-/// 初始化所有服务（翻译引擎、配置管理等）
+// ==================== 共享 HTTP 客户端 ====================
+
+static HTTP_CLIENT: once_cell::sync::Lazy<reqwest::Client> = once_cell::sync::Lazy::new(|| {
+    reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .connect_timeout(Duration::from_secs(10))
+        .build()
+        .expect("Failed to create shared HTTP client")
+});
+
+// ==================== 厂商默认配置 ====================
+
+static DEFAULT_URLS: once_cell::sync::Lazy<std::collections::HashMap<&'static str, &'static str>> =
+    once_cell::sync::Lazy::new(|| {
+        std::collections::HashMap::from([
+            ("openai", "https://api.openai.com/v1"),
+            ("deepseek", "https://api.deepseek.com/v1"),
+            ("qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
+            ("kimi", "https://api.moonshot.cn/v1"),
+            ("glm", "https://open.bigmodel.cn/api/paas/v4"),
+            ("anthropic", "https://api.anthropic.com/v1"),
+            ("google", "https://translation.googleapis.com"),
+            ("deepl", "https://api-free.deepl.com/v2"),
+            ("azure", ""),
+            ("custom", "https://api.openai.com/v1"),
+        ])
+    });
+
+static DEFAULT_MODELS: once_cell::sync::Lazy<std::collections::HashMap<&'static str, &'static str>> =
+    once_cell::sync::Lazy::new(|| {
+        std::collections::HashMap::from([
+            ("openai", "gpt-4o-mini"),
+            ("deepseek", "deepseek-chat"),
+            ("qwen", "qwen-turbo"),
+            ("kimi", "moonshot-v1-8k"),
+            ("glm", "glm-4-plus"),
+            ("anthropic", "claude-3-haiku-20240307"),
+            ("google", "nmt"),
+            ("deepl", "default"),
+            ("azure", "gpt-4o-mini"),
+            ("custom", "gpt-4o-mini"),
+        ])
+    });
+
+static PROVIDER_NAMES: once_cell::sync::Lazy<std::collections::HashMap<&'static str, &'static str>> =
+    once_cell::sync::Lazy::new(|| {
+        std::collections::HashMap::from([
+            ("openai", "OpenAI"),
+            ("deepseek", "DeepSeek"),
+            ("qwen", "Qwen"),
+            ("kimi", "Kimi"),
+            ("glm", "GLM"),
+        ])
+    });
+
+// ==================== FFI 导出函数 ====================
 #[frb]
 pub fn init_services() {
     crate::init_services();
@@ -26,17 +83,16 @@ pub async fn translate(
     let config = get_provider_config(&provider_id).await;
     let resolved = resolve_config(&provider_id, &config);
     let request = build_request(&text, &source_lang, &target_lang, &resolved, &system_prompt_override);
-    let client = reqwest::Client::new();
 
     match provider_id.as_str() {
         "openai" | "deepseek" | "qwen" | "kimi" | "glm" => {
-            translate_openai_compat(&client, &provider_id, &request, &config).await
+            translate_openai_compat(&HTTP_CLIENT, &provider_id, &request, &config).await
         }
-        "deepl" => translate_deepl(&client, &request, &config).await,
-        "google" => translate_google(&client, &request, &config).await,
-        "anthropic" => translate_anthropic(&client, &request, &config).await,
-        "azure" => translate_azure(&client, &request, &config).await,
-        "custom" => translate_custom(&client, &request, &config).await,
+        "deepl" => translate_deepl(&HTTP_CLIENT, &request, &config).await,
+        "google" => translate_google(&HTTP_CLIENT, &request, &config).await,
+        "anthropic" => translate_anthropic(&HTTP_CLIENT, &request, &config).await,
+        "azure" => translate_azure(&HTTP_CLIENT, &request, &config).await,
+        "custom" => translate_custom(&HTTP_CLIENT, &request, &config).await,
         _ => Err(TranslateError::ProviderNotFound(provider_id)),
     }
 }
@@ -79,7 +135,7 @@ pub async fn translate_compare(
                 error_message: Some(e.to_string()),
                 prompt_tokens: 0,
                 completion_tokens: 0,
-            total_tokens: 0,
+                total_tokens: 0,
             }),
         }
     }
@@ -130,17 +186,16 @@ pub async fn test_provider(provider_id: String) -> TestResult {
 
     let resolved = resolve_config(&provider_id, &config);
     let request = build_request("Hello", "en", "zh", &resolved, &None);
-    let client = reqwest::Client::new();
 
     let result = match provider_id.as_str() {
         "openai" | "deepseek" | "qwen" | "kimi" | "glm" => {
-            translate_openai_compat(&client, &provider_id, &request, &config).await
+            translate_openai_compat(&HTTP_CLIENT, &provider_id, &request, &config).await
         }
-        "deepl" => translate_deepl(&client, &request, &config).await,
-        "google" => translate_google(&client, &request, &config).await,
-        "anthropic" => translate_anthropic(&client, &request, &config).await,
-        "azure" => translate_azure(&client, &request, &config).await,
-        "custom" => translate_custom(&client, &request, &config).await,
+        "deepl" => translate_deepl(&HTTP_CLIENT, &request, &config).await,
+        "google" => translate_google(&HTTP_CLIENT, &request, &config).await,
+        "anthropic" => translate_anthropic(&HTTP_CLIENT, &request, &config).await,
+        "azure" => translate_azure(&HTTP_CLIENT, &request, &config).await,
+        "custom" => translate_custom(&HTTP_CLIENT, &request, &config).await,
         _ => Err(TranslateError::ProviderNotFound(provider_id.clone())),
     };
 
@@ -167,6 +222,11 @@ pub async fn update_session(
     compare_providers: Option<Vec<String>>,
 ) -> Result<(), ConfigError> {
     ConfigManager::update_session(provider_id, compare_providers).await
+}
+
+#[frb]
+pub async fn save_window_size(width: i32, height: i32) -> Result<(), ConfigError> {
+    ConfigManager::save_window_size(width, height).await
 }
 
 // ========== 提示词模板 ==========
@@ -224,7 +284,12 @@ pub fn unregister_hotkeys() -> Result<(), HotkeyError> {
 /// Poll for the next hotkey event. Returns None if no event available.
 #[frb]
 pub fn poll_hotkey_event() -> Option<String> {
-    crate::platform::platform().poll_hotkey_event()
+    let result = crate::platform::platform().poll_hotkey_event();
+    if result.is_some() {
+        tracing::info!("[bridge] poll_hotkey_event -> {:?}", result);
+        eprintln!("[rust] [bridge] poll_hotkey_event -> {:?}", result);
+    }
+    result
 }
 
 // ========== 剪贴板服务 ==========
@@ -309,49 +374,17 @@ fn get_env_api_key(provider_id: &str) -> Option<String> {
 }
 
 fn resolve_config(provider_id: &str, saved: &Option<ProviderConfig>) -> ProviderResolvedConfig {
-    let default_urls = {
-        let m: std::collections::HashMap<&str, &str> = [
-            ("openai", "https://api.openai.com/v1"),
-            ("deepseek", "https://api.deepseek.com/v1"),
-            ("qwen", "https://dashscope.aliyuncs.com/compatible-mode/v1"),
-            ("kimi", "https://api.moonshot.cn/v1"),
-            ("glm", "https://open.bigmodel.cn/api/paas/v4"),
-            ("anthropic", "https://api.anthropic.com/v1"),
-            ("google", "https://translation.googleapis.com"),
-            ("deepl", "https://api-free.deepl.com/v2"),
-            ("azure", ""),
-            ("custom", "https://api.openai.com/v1"),
-        ].into_iter().collect();
-        m
-    };
-
-    let default_models = {
-        let m: std::collections::HashMap<&str, &str> = [
-            ("openai", "gpt-4o-mini"),
-            ("deepseek", "deepseek-chat"),
-            ("qwen", "qwen-turbo"),
-            ("kimi", "moonshot-v1-8k"),
-            ("glm", "glm-4-plus"),
-            ("anthropic", "claude-3-haiku-20240307"),
-            ("google", "nmt"),
-            ("deepl", "default"),
-            ("azure", "gpt-4o-mini"),
-            ("custom", "gpt-4o-mini"),
-        ].into_iter().collect();
-        m
-    };
-
     match saved {
         Some(cfg) => ProviderResolvedConfig {
             api_key: cfg.api_key.clone().unwrap_or_else(|| get_env_api_key(provider_id).unwrap_or_default()),
-            base_url: cfg.api_url.clone().unwrap_or_else(|| default_urls.get(provider_id).unwrap_or(&"").to_string()),
-            model: if cfg.model.is_empty() { default_models.get(provider_id).unwrap_or(&"gpt-4o-mini").to_string() } else { cfg.model.clone() },
+            base_url: cfg.api_url.clone().unwrap_or_else(|| DEFAULT_URLS.get(provider_id).unwrap_or(&"").to_string()),
+            model: if cfg.model.is_empty() { DEFAULT_MODELS.get(provider_id).unwrap_or(&"gpt-4o-mini").to_string() } else { cfg.model.clone() },
             system_prompt: cfg.system_prompt.clone(),
         },
         None => ProviderResolvedConfig {
             api_key: get_env_api_key(provider_id).unwrap_or_default(),
-            base_url: default_urls.get(provider_id).unwrap_or(&"").to_string(),
-            model: default_models.get(provider_id).unwrap_or(&"gpt-4o-mini").to_string(),
+            base_url: DEFAULT_URLS.get(provider_id).unwrap_or(&"").to_string(),
+            model: DEFAULT_MODELS.get(provider_id).unwrap_or(&"gpt-4o-mini").to_string(),
             system_prompt: None,
         },
     }
@@ -412,16 +445,9 @@ async fn translate_openai_compat(
     let path = if provider_id == "azure" { "/openai/deployments" } else { "/chat/completions" };
     let url = format!("{}/{}", build_base_url(&cfg.base_url), path.trim_start_matches('/'));
 
-    let provider_names = {
-        let m: std::collections::HashMap<&str, &str> = [
-            ("openai", "OpenAI"),
-            ("deepseek", "DeepSeek"),
-            ("qwen", "Qwen"),
-            ("kimi", "Kimi"),
-            ("glm", "GLM"),
-        ].into_iter().collect();
-        m.get(provider_id).unwrap_or(&provider_id).to_string()
-    };
+    let provider_names = PROVIDER_NAMES.get(provider_id)
+        .unwrap_or(&provider_id)
+        .to_string();
 
     let default_prompt = format!(
         "You are a translation engine. Your ONLY job is to translate text. Do NOT chat, explain, ask questions, or add commentary. Translate the user's input from {} to {}. Output ONLY the translated text, with no extra words, quotes, or formatting.",
@@ -450,10 +476,11 @@ async fn translate_openai_compat(
     let status = response.status();
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
+        warn!("API error from {} ({}): {}", provider_names, status.as_u16(), body);
         return Err(TranslateError::ApiError {
             provider: provider_names.clone(),
             status: status.as_u16(),
-            message: body,
+            message: format!("HTTP {} - {}", status.as_u16(), status.canonical_reason().unwrap_or("Error")),
         });
     }
 
@@ -520,7 +547,8 @@ async fn translate_deepl(
     let status = response.status();
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
-        return Err(TranslateError::ApiError { provider: "DeepL".to_string(), status: status.as_u16(), message: body });
+        warn!("DeepL API error ({}): {}", status.as_u16(), body);
+        return Err(TranslateError::ApiError { provider: "DeepL".to_string(), status: status.as_u16(), message: format!("HTTP {} - {}", status.as_u16(), status.canonical_reason().unwrap_or("Error")) });
     }
 
     let json: serde_json::Value = response.json().await.map_err(|e| TranslateError::ApiError {
@@ -539,7 +567,7 @@ async fn translate_deepl(
         error_message: None,
         prompt_tokens: 0,
         completion_tokens: 0,
-            total_tokens: 0,
+        total_tokens: 0,
     })
 }
 
@@ -554,11 +582,12 @@ async fn translate_google(
         return Err(TranslateError::ApiKeyMissing("Google".to_string()));
     }
 
-    let url = format!("{}/language/translate/v2?key={}", build_base_url(&cfg.base_url), cfg.api_key);
+    let url = format!("{}/language/translate/v2", build_base_url(&cfg.base_url));
     let start = std::time::Instant::now();
 
     let response = client
         .post(&url)
+        .header("x-goog-api-key", &cfg.api_key)
         .json(&serde_json::json!({
             "q": &request.text,
             "source": &request.source_lang,
@@ -572,7 +601,8 @@ async fn translate_google(
     let status = response.status();
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
-        return Err(TranslateError::ApiError { provider: "Google".to_string(), status: status.as_u16(), message: body });
+        warn!("Google API error ({}): {}", status.as_u16(), body);
+        return Err(TranslateError::ApiError { provider: "Google".to_string(), status: status.as_u16(), message: format!("HTTP {} - {}", status.as_u16(), status.canonical_reason().unwrap_or("Error")) });
     }
 
     let json: serde_json::Value = response.json().await.map_err(|e| TranslateError::ApiError {
@@ -591,7 +621,7 @@ async fn translate_google(
         error_message: None,
         prompt_tokens: 0,
         completion_tokens: 0,
-            total_tokens: 0,
+        total_tokens: 0,
     })
 }
 
@@ -634,7 +664,8 @@ async fn translate_anthropic(
     let status = response.status();
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
-        return Err(TranslateError::ApiError { provider: "Anthropic".to_string(), status: status.as_u16(), message: body });
+        warn!("Anthropic API error ({}): {}", status.as_u16(), body);
+        return Err(TranslateError::ApiError { provider: "Anthropic".to_string(), status: status.as_u16(), message: format!("HTTP {} - {}", status.as_u16(), status.canonical_reason().unwrap_or("Error")) });
     }
 
     let json: serde_json::Value = response.json().await.map_err(|e| TranslateError::ApiError {
@@ -645,6 +676,7 @@ async fn translate_anthropic(
 
     let prompt_tokens = json["usage"]["input_tokens"].as_u64().unwrap_or(0);
     let completion_tokens = json["usage"]["output_tokens"].as_u64().unwrap_or(0);
+    let total_tokens = prompt_tokens + completion_tokens;
 
     Ok(TranslationResult {
         provider_id: "anthropic".to_string(),
@@ -656,7 +688,7 @@ async fn translate_anthropic(
         error_message: None,
         prompt_tokens,
         completion_tokens,
-            total_tokens: 0,
+        total_tokens,
     })
 }
 
@@ -703,7 +735,8 @@ async fn translate_azure(
     let status = response.status();
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
-        return Err(TranslateError::ApiError { provider: "Azure".to_string(), status: status.as_u16(), message: body });
+        warn!("Azure API error ({}): {}", status.as_u16(), body);
+        return Err(TranslateError::ApiError { provider: "Azure".to_string(), status: status.as_u16(), message: format!("HTTP {} - {}", status.as_u16(), status.canonical_reason().unwrap_or("Error")) });
     }
 
     let json: serde_json::Value = response.json().await.map_err(|e| TranslateError::ApiError {
@@ -768,7 +801,8 @@ async fn translate_custom(
     let status = response.status();
     if !status.is_success() {
         let body = response.text().await.unwrap_or_default();
-        return Err(TranslateError::ApiError { provider: "Custom".to_string(), status: status.as_u16(), message: body });
+        warn!("Custom API error ({}): {}", status.as_u16(), body);
+        return Err(TranslateError::ApiError { provider: "Custom".to_string(), status: status.as_u16(), message: format!("HTTP {} - {}", status.as_u16(), status.canonical_reason().unwrap_or("Error")) });
     }
 
     let json: serde_json::Value = response.json().await.map_err(|e| TranslateError::ApiError {

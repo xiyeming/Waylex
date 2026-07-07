@@ -3,6 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/models/translation_result.dart';
 import '../../data/datasources/ffi_datasource.dart';
+import '../widgets/common/loading_indicator.dart';
+import '../widgets/common/result_card.dart';
+import '../theme/app_design_tokens.dart';
+import '../widgets/foundation/app_input.dart';
+import '../widgets/foundation/app_button.dart';
+import '../widgets/foundation/app_card.dart';
 
 class ComparePage extends ConsumerStatefulWidget {
   const ComparePage({super.key});
@@ -121,28 +127,24 @@ class _ComparePageState extends ConsumerState<ComparePage> {
         ],
       ),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: AppTokens.pagePadding,
         child: Column(
           children: [
-            TextField(
-              controller: _textController,
+            AppInput.multiline(
+              hintText: '输入对比翻译文本...',
+              value: _textController.text,
+              onChanged: (v) => _textController.text = v,
               maxLines: 3,
-              decoration: InputDecoration(
-                hintText: '输入对比翻译文本...',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTokens.space12),
 
             Wrap(
-              spacing: 8,
+              spacing: AppTokens.space8,
               children: _selectedProviders.map((id) {
                 return Chip(
-                  avatar: Icon(Icons.api, size: 16, color: theme.colorScheme.primary),
+                  avatar: Icon(Icons.api, size: AppTokens.iconMd, color: theme.colorScheme.primary),
                   label: Text(_allProviders[id] ?? id),
-                  deleteIcon: const Icon(Icons.close, size: 16),
+                  deleteIcon: const Icon(Icons.close, size: AppTokens.iconMd),
                   onDeleted: _selectedProviders.length > 1
                       ? () {
                           setState(() {
@@ -154,27 +156,20 @@ class _ComparePageState extends ConsumerState<ComparePage> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTokens.space12),
 
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _isComparing || _selectedProviders.isEmpty
-                    ? null
-                    : _startCompare,
-                icon: _isComparing
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.compare),
-                label: Text(_isComparing
-                    ? '对比中...'
-                    : '开始对比 (${_selectedProviders.length}个厂商)'),
-              ),
+            AppButton.primary(
+              label: _isComparing
+                  ? '对比中...'
+                  : '开始对比 (${_selectedProviders.length}个厂商)',
+              icon: _isComparing
+                  ? AppLoadingIndicator.inline(color: theme.colorScheme.onPrimary)
+                  : const Icon(Icons.compare),
+              onPressed: _isComparing || _selectedProviders.isEmpty ? null : _startCompare,
+              isLoading: _isComparing,
+              fullWidth: true,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTokens.space16),
 
             if (_compareResults.isNotEmpty)
               Expanded(
@@ -183,29 +178,25 @@ class _ComparePageState extends ConsumerState<ComparePage> {
                     final result = _compareResults[id];
                     if (result == null) {
                       if (_isComparing) {
-                        return Card(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          child: Padding(
-                            padding: const EdgeInsets.all(16),
-                            child: Row(
+                        return AppCard.surface(
+                          margin: const EdgeInsets.only(bottom: AppTokens.space12),
+                          child: Row(
                               children: [
                                 SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+                                  width: AppTokens.iconMd,
+                                  height: AppTokens.iconMd,
+                                  child: AppLoadingIndicator.inline(
                                     color: theme.colorScheme.primary,
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                const SizedBox(width: AppTokens.space8),
                                 Text(
                                   '${_allProviders[id] ?? id} 翻译中...',
                                   style: theme.textTheme.bodySmall,
                                 ),
                               ],
                             ),
-                          ),
-                        );
+                          );
                       }
                       return const SizedBox.shrink();
                     }
@@ -220,74 +211,14 @@ class _ComparePageState extends ConsumerState<ComparePage> {
   }
 
   Widget _buildResultCard(ThemeData theme, String providerId, TranslationResult result) {
-    final providerName = _allProviders[providerId] ?? providerId;
-    final isError = !result.isSuccess;
-    final borderColor = isError
-        ? theme.colorScheme.error.withValues(alpha: 0.3)
-        : theme.colorScheme.primary.withValues(alpha: 0.3);
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        border: Border.all(color: borderColor),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Text(
-                  providerName,
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: isError ? theme.colorScheme.error : theme.colorScheme.primary,
-                  ),
-                ),
-                const Spacer(),
-                if (result.responseTimeMs > 0)
-                  _buildResponseTimeBadge(theme, result.responseTimeMs),
-                IconButton(
-                  icon: const Icon(Icons.copy, size: 16),
-                  tooltip: '复制',
-                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
-                  padding: EdgeInsets.zero,
-                  onPressed: () {
-                    _ffi.setClipboardText(result.translatedText);
-                  },
-                ),
-              ],
-            ),
-            const Divider(height: 20),
-            SelectableText(
-              result.translatedText,
-              style: theme.textTheme.bodyMedium,
-            ),
-          ],
-        ),
-      ),
+    return AppResultCard(
+      providerName: _allProviders[providerId] ?? providerId,
+      text: result.translatedText,
+      isError: !result.isSuccess,
+      responseTimeMs: result.responseTimeMs,
+      totalTokens: result.totalTokens,
+      onCopy: () => _ffi.setClipboardText(result.translatedText),
     );
   }
 
-  Widget _buildResponseTimeBadge(ThemeData theme, int ms) {
-    final color = ms < 500
-        ? Colors.green
-        : ms < 1000
-            ? Colors.orange
-            : Colors.red;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        '${ms}ms',
-        style: theme.textTheme.labelSmall?.copyWith(color: color),
-      ),
-    );
-  }
 }

@@ -6,7 +6,7 @@ use std::collections::HashSet;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
-use tokio::sync::broadcast;
+use tokio::sync::mpsc;
 
 type ShortcutDef = (HashSet<u16>, u16, String);
 
@@ -26,6 +26,23 @@ impl EvdevHotkeyService {
 
     pub fn with_running(running: Arc<AtomicBool>) -> Result<Self, HotkeyError> {
         Ok(Self { shortcuts: Vec::new(), running })
+    }
+
+    #[allow(dead_code)]
+    pub fn shortcuts(&self) -> &[ShortcutDef] {
+        &self.shortcuts
+    }
+
+    /// Quick probe: can we open at least one keyboard device?
+    /// Used by Hyprland path to decide whether to use evdev or fall back to IPC.
+    #[allow(dead_code)]
+    pub fn probe_device() -> Result<(), HotkeyError> {
+        for (path, _) in evdev::enumerate() {
+            if Self::open_keyboard_device(&path).is_ok() {
+                return Ok(());
+            }
+        }
+        Err(HotkeyError::NoKeyboardDevices)
     }
 
     fn parse_key_combination(keys: &str) -> Vec<u16> {
@@ -134,7 +151,7 @@ impl EvdevHotkeyService {
         Ok(())
     }
 
-    pub fn listen_blocking(&self, tx: broadcast::Sender<String>) -> Result<(), HotkeyError> {
+    pub fn listen_blocking(&self, tx: mpsc::Sender<String>) -> Result<(), HotkeyError> {
         let mut device_paths: Vec<std::path::PathBuf> = Vec::new();
 
         for (path, _) in evdev::enumerate() {
@@ -262,7 +279,7 @@ impl EvdevHotkeyService {
                                                 lt.insert(action.clone(), now);
                                                 drop(lt);
                                                 tracing::info!("[evdev] Hotkey triggered: {}", action);
-                                                let _ = tx.send(action.clone());
+                                                let _ = tx.blocking_send(action.clone());
                                             }
                                         }
                                     } else if value == 0 {

@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -987431223;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1358137499;
 
 // Section: executor
 
@@ -673,6 +673,44 @@ fn wire__crate__ffi__bridge__save_provider_impl(
         },
     )
 }
+fn wire__crate__ffi__bridge__save_window_size_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "save_window_size",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_width = <i32>::sse_decode(&mut deserializer);
+            let api_height = <i32>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, ConfigError>(
+                    (move || async move {
+                        let output_ok =
+                            crate::ffi::bridge::save_window_size(api_width, api_height).await?;
+                        Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__ffi__bridge__set_clipboard_text_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -1178,10 +1216,14 @@ impl SseDecode for crate::ffi::types::ActiveSession {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_lastProviderId = <String>::sse_decode(deserializer);
         let mut var_lastCompareProviders = <Vec<String>>::sse_decode(deserializer);
+        let mut var_windowWidth = <Option<i32>>::sse_decode(deserializer);
+        let mut var_windowHeight = <Option<i32>>::sse_decode(deserializer);
         let mut var_lastUsed = <chrono::DateTime<chrono::Utc>>::sse_decode(deserializer);
         return crate::ffi::types::ActiveSession {
             last_provider_id: var_lastProviderId,
             last_compare_providers: var_lastCompareProviders,
+            window_width: var_windowWidth,
+            window_height: var_windowHeight,
             last_used: var_lastUsed,
         };
     }
@@ -1341,6 +1383,17 @@ impl SseDecode for Option<String> {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         if (<bool>::sse_decode(deserializer)) {
             return Some(<String>::sse_decode(deserializer));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<i32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<i32>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -1577,18 +1630,19 @@ fn pde_ffi_dispatcher_primary_impl(
             wire__crate__ffi__bridge__save_prompt_template_impl(port, ptr, rust_vec_len, data_len)
         }
         18 => wire__crate__ffi__bridge__save_provider_impl(port, ptr, rust_vec_len, data_len),
-        19 => wire__crate__ffi__bridge__set_clipboard_text_impl(port, ptr, rust_vec_len, data_len),
-        20 => wire__crate__ffi__bridge__should_check_update_impl(port, ptr, rust_vec_len, data_len),
-        21 => {
+        19 => wire__crate__ffi__bridge__save_window_size_impl(port, ptr, rust_vec_len, data_len),
+        20 => wire__crate__ffi__bridge__set_clipboard_text_impl(port, ptr, rust_vec_len, data_len),
+        21 => wire__crate__ffi__bridge__should_check_update_impl(port, ptr, rust_vec_len, data_len),
+        22 => {
             wire__crate__ffi__bridge__show_tray_notification_impl(port, ptr, rust_vec_len, data_len)
         }
-        22 => wire__crate__ffi__bridge__skip_update_version_impl(port, ptr, rust_vec_len, data_len),
-        23 => wire__crate__ffi__bridge__test_provider_impl(port, ptr, rust_vec_len, data_len),
-        24 => wire__crate__ffi__bridge__translate_impl(port, ptr, rust_vec_len, data_len),
-        25 => wire__crate__ffi__bridge__translate_compare_impl(port, ptr, rust_vec_len, data_len),
-        26 => wire__crate__ffi__bridge__unregister_hotkeys_impl(port, ptr, rust_vec_len, data_len),
-        27 => wire__crate__ffi__bridge__update_session_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__ffi__bridge__update_shortcut_impl(port, ptr, rust_vec_len, data_len),
+        23 => wire__crate__ffi__bridge__skip_update_version_impl(port, ptr, rust_vec_len, data_len),
+        24 => wire__crate__ffi__bridge__test_provider_impl(port, ptr, rust_vec_len, data_len),
+        25 => wire__crate__ffi__bridge__translate_impl(port, ptr, rust_vec_len, data_len),
+        26 => wire__crate__ffi__bridge__translate_compare_impl(port, ptr, rust_vec_len, data_len),
+        27 => wire__crate__ffi__bridge__unregister_hotkeys_impl(port, ptr, rust_vec_len, data_len),
+        28 => wire__crate__ffi__bridge__update_session_impl(port, ptr, rust_vec_len, data_len),
+        29 => wire__crate__ffi__bridge__update_shortcut_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -1673,6 +1727,8 @@ impl flutter_rust_bridge::IntoDart for crate::ffi::types::ActiveSession {
         [
             self.last_provider_id.into_into_dart().into_dart(),
             self.last_compare_providers.into_into_dart().into_dart(),
+            self.window_width.into_into_dart().into_dart(),
+            self.window_height.into_into_dart().into_dart(),
             self.last_used.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -2012,6 +2068,8 @@ impl SseEncode for crate::ffi::types::ActiveSession {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.last_provider_id, serializer);
         <Vec<String>>::sse_encode(self.last_compare_providers, serializer);
+        <Option<i32>>::sse_encode(self.window_width, serializer);
+        <Option<i32>>::sse_encode(self.window_height, serializer);
         <chrono::DateTime<chrono::Utc>>::sse_encode(self.last_used, serializer);
     }
 }
@@ -2154,6 +2212,16 @@ impl SseEncode for Option<String> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <String>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<i32> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <i32>::sse_encode(value, serializer);
         }
     }
 }

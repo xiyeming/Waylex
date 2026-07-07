@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../theme/app_design_tokens.dart';
+import '../widgets/foundation/app_button.dart';
 
 class MainPage extends ConsumerWidget {
   const MainPage({super.key});
@@ -10,7 +12,7 @@ class MainPage extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Flutter Translate'),
+        title: const Text('Waylex'),
         actions: [
           IconButton(
             icon: const Icon(Icons.compare_arrows),
@@ -30,46 +32,48 @@ class MainPage extends ConsumerWidget {
       ),
       body: Center(
         child: Padding(
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(AppTokens.space32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
                 Icons.translate,
-                size: 64,
+                size: AppTokens.iconDisplay,
                 color: theme.colorScheme.primary,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTokens.space16),
               Text(
                 'AI 翻译工具',
                 style: theme.textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppTokens.space8),
               Text(
                 '支持 OpenAI / DeepL / Google 多厂商翻译',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 32),
-              FilledButton.icon(
+              const SizedBox(height: AppTokens.space32),
+              AppButton.primary(
+                label: '打开浮动窗口',
+                icon: const Icon(Icons.open_in_new),
                 onPressed: () {
                   // TODO: 打开浮动翻译窗口
                 },
-                icon: const Icon(Icons.open_in_new),
-                label: const Text('打开浮动窗口'),
+                fullWidth: true,
               ),
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
+              const SizedBox(height: AppTokens.space12),
+              AppButton.secondary(
+                label: '截图翻译',
+                icon: const Icon(Icons.screenshot),
                 onPressed: () {
                   // TODO: 截图OCR翻译
                 },
-                icon: const Icon(Icons.screenshot),
-                label: const Text('截图翻译'),
+                fullWidth: true,
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppTokens.space24),
               Text(
                 '快捷键: Super+Alt+F 翻译 | Ctrl+Shift+S 截图翻译',
                 style: theme.textTheme.bodySmall?.copyWith(

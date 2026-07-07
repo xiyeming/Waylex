@@ -14,7 +14,7 @@ pub struct ConfigManager;
 
 impl ConfigManager {
     pub async fn init() -> Result<(), ConfigError> {
-        storage::get_pool().await;
+        storage::get_pool().await?;
         Ok(())
     }
 
@@ -37,7 +37,7 @@ impl ConfigManager {
     // ========== 厂商配置 ==========
 
     pub async fn get_all_providers() -> Result<Vec<ProviderConfig>, ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
 
         #[derive(FromRow)]
         struct ProviderRow {
@@ -80,7 +80,7 @@ impl ConfigManager {
     }
 
     pub async fn save_provider(config: ProviderConfig) -> Result<(), ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
 
         match &config.api_key {
             Some(api_key) => {
@@ -114,7 +114,7 @@ impl ConfigManager {
     }
 
     pub async fn delete_provider(id: &str) -> Result<(), ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
 
         secret::delete_api_key(id).await.ok();
 
@@ -128,10 +128,10 @@ impl ConfigManager {
     // ========== 会话管理 ==========
 
     pub async fn get_active_session() -> Result<ActiveSession, ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
 
         let row = sqlx::query(
-            "SELECT last_provider_id, last_compare_providers, last_used FROM active_sessions WHERE id = 1"
+            "SELECT last_provider_id, last_compare_providers, window_width, window_height, last_used FROM active_sessions WHERE id = 1"
         ).fetch_one(&pool).await.map_err(ConfigError::DbError)?;
 
         let compare_providers: Vec<String> = serde_json::from_str(
@@ -147,6 +147,8 @@ impl ConfigManager {
         Ok(ActiveSession {
             last_provider_id: row.try_get::<String, _>("last_provider_id").unwrap_or_default(),
             last_compare_providers: compare_providers,
+            window_width: row.try_get("window_width").ok().flatten(),
+            window_height: row.try_get("window_height").ok().flatten(),
             last_used,
         })
     }
@@ -155,7 +157,7 @@ impl ConfigManager {
         provider_id: Option<String>,
         compare_providers: Option<Vec<String>>,
     ) -> Result<(), ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
 
         let session = Self::get_active_session().await?;
         let new_provider_id = provider_id.unwrap_or(session.last_provider_id);
@@ -173,10 +175,23 @@ impl ConfigManager {
         Ok(())
     }
 
+    pub async fn save_window_size(width: i32, height: i32) -> Result<(), ConfigError> {
+        let pool = storage::get_pool().await?;
+
+        sqlx::query(
+            "UPDATE active_sessions SET window_width = $1, window_height = $2 WHERE id = 1"
+        )
+        .bind(width)
+        .bind(height)
+        .execute(&pool).await.map_err(ConfigError::DbError)?;
+
+        Ok(())
+    }
+
     // ========== 快捷键配置 ==========
 
     pub async fn get_all_shortcuts() -> Result<Vec<ShortcutBinding>, ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
 
         #[derive(FromRow)]
         struct ShortcutRow {
@@ -199,7 +214,7 @@ impl ConfigManager {
     }
 
     pub async fn save_shortcut(binding: ShortcutBinding) -> Result<(), ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
 
         sqlx::query(
             r#"
@@ -221,7 +236,7 @@ impl ConfigManager {
     // ========== 语言偏好 ==========
 
     pub async fn get_language_prefs() -> Result<Vec<LanguagePref>, ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
 
         #[derive(FromRow)]
         struct LangRow {
@@ -246,7 +261,7 @@ impl ConfigManager {
     // ========== 用户配置 ==========
 
     pub async fn get_user_config() -> Result<UserConfig, ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
 
         let row = sqlx::query(
             "SELECT id, theme, default_target_lang, auto_detect, history_enabled, created_at, updated_at FROM user_config WHERE id = 'default'"
@@ -277,7 +292,7 @@ impl ConfigManager {
     // ========== 提示词模板 ==========
 
     pub async fn get_all_prompt_templates() -> Result<Vec<PromptTemplate>, ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
 
         #[derive(FromRow)]
         struct TemplateRow {
@@ -304,7 +319,7 @@ impl ConfigManager {
     }
 
     pub async fn save_prompt_template(tpl: PromptTemplate) -> Result<(), ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
         if tpl.is_active {
             sqlx::query("UPDATE prompt_templates SET is_active = 0")
                 .execute(&pool).await.map_err(ConfigError::DbError)?;
@@ -321,14 +336,14 @@ impl ConfigManager {
     }
 
     pub async fn delete_prompt_template(id: &str) -> Result<(), ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
         sqlx::query("DELETE FROM prompt_templates WHERE id = $1")
             .bind(id).execute(&pool).await.map_err(ConfigError::DbError)?;
         Ok(())
     }
 
     pub async fn get_active_prompt() -> Result<Option<PromptTemplate>, ConfigError> {
-        let pool = storage::get_pool().await;
+        let pool = storage::get_pool().await?;
         let row = sqlx::query("SELECT id, name, content, is_active, created_at FROM prompt_templates WHERE is_active = 1")
             .fetch_optional(&pool).await.map_err(ConfigError::DbError)?;
         match row {

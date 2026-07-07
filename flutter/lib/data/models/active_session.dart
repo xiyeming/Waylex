@@ -8,6 +8,8 @@ sealed class ActiveSession with _$ActiveSession {
   const factory ActiveSession({
     @Default('') String lastProviderId,
     @Default([]) List<String> lastCompareProviders,
+    int? windowWidth,
+    int? windowHeight,
     required DateTime lastUsed,
   }) = _ActiveSession;
 

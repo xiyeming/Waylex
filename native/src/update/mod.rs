@@ -75,7 +75,7 @@ impl UpdateService {
     }
 
     pub async fn set_skipped_version(version: String) -> Result<(), ConfigError> {
-        let pool = crate::config::storage::get_pool().await;
+        let pool = crate::config::storage::get_pool().await?;
         sqlx::query(
             "UPDATE app_update SET skipped_version = $1 WHERE id = 'update_state'"
         )
@@ -85,14 +85,14 @@ impl UpdateService {
     }
 
     pub async fn get_skipped_version() -> Result<String, ConfigError> {
-        let pool = crate::config::storage::get_pool().await;
+        let pool = crate::config::storage::get_pool().await?;
         let row = sqlx::query("SELECT skipped_version FROM app_update WHERE id = 'update_state'")
             .fetch_one(&pool).await.map_err(ConfigError::DbError)?;
         Ok(row.try_get::<String, _>("skipped_version").unwrap_or_default())
     }
 
     pub async fn should_check() -> Result<bool, ConfigError> {
-        let pool = crate::config::storage::get_pool().await;
+        let pool = crate::config::storage::get_pool().await?;
         let row = sqlx::query("SELECT last_check_at FROM app_update WHERE id = 'update_state'")
             .fetch_one(&pool).await.map_err(ConfigError::DbError)?;
 
@@ -110,7 +110,7 @@ impl UpdateService {
     }
 
     async fn update_last_check_time() -> Result<(), ConfigError> {
-        let pool = crate::config::storage::get_pool().await;
+        let pool = crate::config::storage::get_pool().await?;
         sqlx::query(
             "UPDATE app_update SET last_check_at = datetime('now') WHERE id = 'update_state'"
         )

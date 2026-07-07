@@ -4,6 +4,8 @@ import 'package:window_manager/window_manager.dart';
 import 'package:flutter_translate/main.dart';
 import 'router/app_router.dart';
 import 'theme/app_theme.dart';
+import '../presentation/providers/theme_provider.dart';
+import '../data/datasources/ffi_datasource.dart';
 
 class FlutterTranslateApp extends ConsumerStatefulWidget {
   const FlutterTranslateApp({super.key});
@@ -34,14 +36,27 @@ class _FlutterTranslateAppState extends ConsumerState<FlutterTranslateApp> with 
   }
 
   @override
+  void onWindowResize() async {
+    try {
+      final size = await windowManager.getSize();
+      final ffi = FfiDatasource();
+      await ffi.saveWindowSize(size.width.toInt(), size.height.toInt());
+    } catch (e) {
+      debugPrint('保存窗口尺寸失败: $e');
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+    final accent = ref.watch(accentColorProvider);
     return TrayApp(
       child: MaterialApp.router(
-        title: 'Flutter Translate',
+        title: 'Waylex',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
+        theme: AppTheme.light(accent),
+        darkTheme: AppTheme.dark(accent),
+        themeMode: themeMode,
         routerConfig: appRouter,
       ),
     );

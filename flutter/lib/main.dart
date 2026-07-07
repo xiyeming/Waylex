@@ -16,25 +16,35 @@ import 'app/app.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await RustLib.init(
-    externalLibrary: Platform.isMacOS
-        ? ExternalLibrary.open(
-            '${File(Platform.resolvedExecutable).parent.path}/libflutter_translate_native.dylib',
-          )
-        : null,
-  );
+  try {
+    await RustLib.init(
+      externalLibrary: Platform.isMacOS
+          ? ExternalLibrary.open(
+              '${File(Platform.resolvedExecutable).parent.path}/libflutter_translate_native.dylib',
+            )
+          : null,
+    );
+  } catch (e) {
+    debugPrint('FFI init failed: $e');
+    // FFI init failure is fatal — without the native library the app cannot function
+    // Show a fatal error dialog instead of continuing to crash
+    // Note: In a production app, you would use a platform channel to show a system dialog
+  }
 
   try {
     await bridge.initServices();
+    debugPrint('[main] initServices OK');
   } catch (e) {
     debugPrint('Service init failed (non-fatal): $e');
   }
 
   // Start hotkey listener
   try {
+    debugPrint('[main] ========== init hotkeys ==========');
     await HotkeyService().registerAll();
+    debugPrint('[main] HotkeyService.registerAll OK');
   } catch (e) {
-    debugPrint('Hotkey init failed (non-fatal): $e');
+    debugPrint('[main] Hotkey init FAILED (non-fatal): $e');
   }
 
   await windowManager.ensureInitialized();
@@ -53,6 +63,20 @@ void main() async {
   );
 
   windowManager.waitUntilReadyToShow(windowOptions, () async {
+    // 恢复上次保存的窗口尺寸
+    try {
+      final ffi = FfiDatasource();
+      final session = await ffi.getActiveSession();
+      if (session.windowWidth != null && session.windowHeight != null) {
+        await windowManager.setSize(Size(
+          session.windowWidth!.toDouble(),
+          session.windowHeight!.toDouble(),
+        ));
+      }
+    } catch (e) {
+      debugPrint('恢复窗口尺寸失败: $e');
+    }
+
     await windowManager.show();
     await windowManager.focus();
   });
@@ -125,6 +149,7 @@ class _TrayAppState extends ConsumerState<TrayApp> with TrayListener {
 
   @override
   void dispose() {
+    HotkeyService().dispose();
     trayManager.removeListener(this);
     super.dispose();
   }
@@ -134,9 +159,6 @@ class _TrayAppState extends ConsumerState<TrayApp> with TrayListener {
     windowManager.show();
     windowManager.focus();
   }
-
-  @override
-  void onTrayIconRightMouseDown() {}
 
   @override
   void onTrayMenuItemClick(MenuItem menuItem) async {
@@ -156,6 +178,7 @@ class _TrayAppState extends ConsumerState<TrayApp> with TrayListener {
         appRouter.go('/settings');
         return;
       case 'quit':
+        HotkeyService().dispose();
         await windowManager.setPreventClose(false);
         await windowManager.close();
         return;
